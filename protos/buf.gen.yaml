@@ -1,0 +1,13 @@
+version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/NSXBet/go-cache-manager/gen/go
+plugins:
+  - plugin: buf.build/protocolbuffers/go
+    out: ../gen/go
+    opt: paths=source_relative
+  - plugin: go-cache-manager
+    out: ../gen/go
+    opt:
+      - paths=source_relative

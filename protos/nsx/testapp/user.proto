@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package nsx.testapp;
+
+option go_package = "github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp";
+
+// UserDetailsRequest contains the parameters that will be used to vary the cache with.
+message UserDetailsRequest {
+  string user_id = 1;
+}
+
+// UserDetailsResponse contains the response that will be cached.
+message UserDetailsResponse {
+  string user_id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+service UserCache {
+  rpc UserDetails(UserDetailsRequest) returns (UserDetailsResponse) {}
+  rpc UserSettings(UserDetailsRequest) returns (UserDetailsResponse) {}
+}
