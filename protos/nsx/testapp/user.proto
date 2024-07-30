@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package nsx.testapp;
 
+import "google/protobuf/empty.proto";
+
 option go_package = "github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp";
 
 // UserDetailsRequest contains the parameters that will be used to vary the cache with.
@@ -11,12 +13,36 @@ message UserDetailsRequest {
 
 // UserDetailsResponse contains the response that will be cached.
 message UserDetailsResponse {
+  User user = 1;
+}
+
+message User {
   string user_id = 1;
   string name = 2;
   string email = 3;
 }
 
+message MainTournamentsRequest {
+  google.protobuf.Empty empty = 1;
+}
+
+message MainTournamentsResponse {
+  repeated Tournament tournaments = 1;
+}
+
+message Tournament {
+  string id = 1;
+  string name = 2;
+  string image_url = 3;
+  string url = 4;
+}
+
+// UserCache is the service that will be used to cache user details.
 service UserCache {
+  // UserDetails returns the user details for the given user_id from the cache.
   rpc UserDetails(UserDetailsRequest) returns (UserDetailsResponse) {}
-  rpc UserSettings(UserDetailsRequest) returns (UserDetailsResponse) {}
+}
+
+service TournamentCache {
+  rpc MainTournaments(MainTournamentsRequest) returns (MainTournamentsResponse) {}
 }

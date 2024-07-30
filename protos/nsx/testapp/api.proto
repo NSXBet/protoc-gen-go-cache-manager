@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package nsx.testapp;
+
+import "nsx/testapp/user.proto";
+
+option go_package = "github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp";
+
+message GetUserDetailsRequest {
+  string user_id = 1;
+}
+
+message GetUserDetailsResponse {
+  User user = 1;
+}
+
+service UserAPIService {
+  rpc GetUserDetails(GetUserDetailsRequest) returns (GetUserDetailsResponse) {}
+}

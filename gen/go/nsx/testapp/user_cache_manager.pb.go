@@ -2,33 +2,80 @@
 
 package testapp
 
+import (
+	"context"
+	"fmt"
+
+	"github.com/NSXBet/go-cache-manager/pkg/gocachemanager"
+)
+
+// UserCacheManager for every operation related to this service:
+// UserCache is the service that will be used to cache user details.
 type UserCacheManager struct {
+	userDetailsManager_UserDetails *gocachemanager.CacheManager[*UserDetailsRequest, *UserDetailsResponse]
 }
 
-func NewUserCacheManager() *UserCacheManager {
-	return &UserCacheManager{}
+// NewUserCacheManager is the constructor method for this service:
+// UserCache is the service that will be used to cache user details.
+func NewUserCacheManager(
+	updateUserDetailsFn func(context.Context, *UserDetailsRequest) (*UserDetailsResponse, error),
+	options ...gocachemanager.CacheOption,
+) (*UserCacheManager, error) {
+	userDetailsManager_UserDetails, err := gocachemanager.NewCacheManager[*UserDetailsRequest, *UserDetailsResponse]("userdetails", func() *UserDetailsResponse { return &UserDetailsResponse{} }, updateUserDetailsFn, options...)
+	if err != nil {
+		return nil, fmt.Errorf("creating cache manager %s: %w", "UserDetails", err)
+	}
+
+	return &UserCacheManager{
+		userDetailsManager_UserDetails: userDetailsManager_UserDetails,
+	}, nil
 }
 
+// GetUserDetails returns the user details for the given user_id from the cache.
 func (cm *UserCacheManager) GetUserDetails(
+	ctx context.Context,
 	input *UserDetailsRequest,
 ) (*UserDetailsResponse, error) {
-	return nil, nil
+	return cm.userDetailsManager_UserDetails.Get(ctx, input)
 }
 
-func (cm *UserCacheManager) UpdateUserDetails(
-	input *UserDetailsRequest,
-	updateFn func(*UserDetailsRequest) (*UserDetailsResponse, error),
-) {
-}
-
-func (cm *UserCacheManager) GetUserSettings(
+// Eagerly refresh the cache for the method that:
+// UserDetails returns the user details for the given user_id from the cache.
+func (cm *UserCacheManager) RefreshUserDetails(
+	ctx context.Context,
 	input *UserDetailsRequest,
 ) (*UserDetailsResponse, error) {
-	return nil, nil
+	return cm.userDetailsManager_UserDetails.Refresh(ctx, input)
 }
 
-func (cm *UserCacheManager) UpdateUserSettings(
-	input *UserDetailsRequest,
-	updateFn func(*UserDetailsRequest) (*UserDetailsResponse, error),
-) {
+type TournamentCacheManager struct {
+	mainTournamentsManager_MainTournaments *gocachemanager.CacheManager[*MainTournamentsRequest, *MainTournamentsResponse]
+}
+
+func NewTournamentCacheManager(
+	updateMainTournamentsFn func(context.Context, *MainTournamentsRequest) (*MainTournamentsResponse, error),
+	options ...gocachemanager.CacheOption,
+) (*TournamentCacheManager, error) {
+	mainTournamentsManager_MainTournaments, err := gocachemanager.NewCacheManager[*MainTournamentsRequest, *MainTournamentsResponse]("maintournaments", func() *MainTournamentsResponse { return &MainTournamentsResponse{} }, updateMainTournamentsFn, options...)
+	if err != nil {
+		return nil, fmt.Errorf("creating cache manager %s: %w", "MainTournaments", err)
+	}
+
+	return &TournamentCacheManager{
+		mainTournamentsManager_MainTournaments: mainTournamentsManager_MainTournaments,
+	}, nil
+}
+
+func (cm *TournamentCacheManager) GetMainTournaments(
+	ctx context.Context,
+	input *MainTournamentsRequest,
+) (*MainTournamentsResponse, error) {
+	return cm.mainTournamentsManager_MainTournaments.Get(ctx, input)
+}
+
+func (cm *TournamentCacheManager) RefreshMainTournaments(
+	ctx context.Context,
+	input *MainTournamentsRequest,
+) (*MainTournamentsResponse, error) {
+	return cm.mainTournamentsManager_MainTournaments.Refresh(ctx, input)
 }
