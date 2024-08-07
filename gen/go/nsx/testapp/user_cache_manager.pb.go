@@ -21,7 +21,12 @@ func NewUserCacheManager(
 	updateUserDetailsFn func(context.Context, *UserDetailsRequest) (*UserDetailsResponse, error),
 	options ...gocachemanager.CacheOption,
 ) (*UserCacheManager, error) {
-	userDetailsManager_UserDetails, err := gocachemanager.NewCacheManager[*UserDetailsRequest, *UserDetailsResponse]("userdetails", func() *UserDetailsResponse { return &UserDetailsResponse{} }, updateUserDetailsFn, options...)
+	userDetailsManager_UserDetails, err := gocachemanager.NewCacheManager(
+		"userdetails",
+		func() *UserDetailsResponse { return &UserDetailsResponse{} },
+		updateUserDetailsFn,
+		options...,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating cache manager %s: %w", "UserDetails", err)
 	}
@@ -56,7 +61,12 @@ func NewTournamentCacheManager(
 	updateMainTournamentsFn func(context.Context, *MainTournamentsRequest) (*MainTournamentsResponse, error),
 	options ...gocachemanager.CacheOption,
 ) (*TournamentCacheManager, error) {
-	mainTournamentsManager_MainTournaments, err := gocachemanager.NewCacheManager[*MainTournamentsRequest, *MainTournamentsResponse]("maintournaments", func() *MainTournamentsResponse { return &MainTournamentsResponse{} }, updateMainTournamentsFn, options...)
+	mainTournamentsManager_MainTournaments, err := gocachemanager.NewCacheManager(
+		"maintournaments",
+		func() *MainTournamentsResponse { return &MainTournamentsResponse{} },
+		updateMainTournamentsFn,
+		options...,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("creating cache manager %s: %w", "MainTournaments", err)
 	}

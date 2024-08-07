@@ -3,6 +3,7 @@ syntax = "proto3";
 package nsx.testapp;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp";
 
@@ -30,11 +31,47 @@ message MainTournamentsResponse {
   repeated Tournament tournaments = 1;
 }
 
+enum TournamentType {
+  TOURNAMENT_TYPE_UNKNOWN = 0;
+  TOURNAMENT_TYPE_DAILY = 1;
+  TOURNAMENT_TYPE_WEEKLY = 2;
+  TOURNAMENT_TYPE_MONTHLY = 3;
+}
+
 message Tournament {
   string id = 1;
   string name = 2;
   string image_url = 3;
   string url = 4;
+  double dbl = 5;
+  float flt = 6;
+  int32 num32 = 7;
+  int64 num64 = 8;
+  uint32 unum32 = 9;
+  uint64 unum64 = 10;
+  sint32 snum32 = 11;
+  sint64 snum64 = 12;
+  fixed32 fnum32 = 13;
+  fixed64 fnum64 = 14;
+  sfixed32 sfnum32 = 15;
+  sfixed64 sfnum64 = 16;
+  bool is_active = 17;
+  bytes data = 18;
+  TournamentType type = 19;
+  repeated Event events = 20;
+
+  oneof prize {
+    string prize_val = 21;
+    int32 prize_num = 22;
+  }
+
+  map<string, string> metadata = 23;
+}
+
+message Event {
+  google.protobuf.Timestamp start_time = 1;
+  string name = 2;
+  repeated string players = 3;
 }
 
 // UserCache is the service that will be used to cache user details.

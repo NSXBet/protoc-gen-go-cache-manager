@@ -70,7 +70,7 @@ func NewGoCacheWrapper(
 func (gcw *GoCacheWrapper) getKey(key []byte) string {
 	b64 := base64.StdEncoding.EncodeToString(key)
 
-	return fmt.Sprintf("%s:%s", gcw.prefix, b64)
+	return fmt.Sprintf("%s::%s", gcw.prefix, b64)
 }
 
 func (gcw *GoCacheWrapper) Get(ctx context.Context, key []byte) ([]byte, error) {

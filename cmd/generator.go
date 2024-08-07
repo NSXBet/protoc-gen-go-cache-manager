@@ -213,23 +213,28 @@ func (g *Generator) generateConstructorManager(
 
 	gf.P(
 		g.methodName(g.privateManagerName(method.GoName), method.GoName),
-		", err := gocachemanager.NewCacheManager[*",
-		method.Input.GoIdent.GoName,
-		", *",
-		method.Output.GoIdent.GoName,
-		"](",
+		", err := gocachemanager.NewCacheManager",
+		"(",
+	)
+	gf.P(
 		"\"",
 		strings.ToLower(method.GoName),
 		"\",",
+	)
+	gf.P(
 		"func() *",
 		method.Output.GoIdent.GoName,
 		" { return &",
 		method.Output.GoIdent.GoName,
 		"{} },",
-		"update", method.GoName, "Fn,",
-		"options...",
-		")",
 	)
+	gf.P(
+		"update", method.GoName, "Fn,",
+	)
+	gf.P(
+		"options...",
+	)
+	gf.P(")")
 
 	gf.P("if err != nil {")
 	gf.P(
