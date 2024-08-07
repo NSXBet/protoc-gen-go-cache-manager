@@ -200,6 +200,9 @@ func main() {
 
 ## Cache Manager Options
 
+You can pass as many of these to your cache managers as you require. Remember that there are some options that are
+mutually exclusive, like `WithInMemoryCacheSize` and `WithSkipInMemoryCache`.
+
 ### WithRedisConnection
 
 This option allows you to configure the cache manager to use a Redis cache. This option takes a single string parameter
