@@ -37,6 +37,8 @@ func NewUserCacheManager(
 }
 
 // GetUserDetails returns the user details for the given user_id from the cache.
+// This method is a test of a multi-line comment.
+// It should not break other lines.
 func (cm *UserCacheManager) GetUserDetails(
 	ctx context.Context,
 	input *UserDetailsRequest,
@@ -46,6 +48,8 @@ func (cm *UserCacheManager) GetUserDetails(
 
 // Eagerly refresh the cache for the method that:
 // UserDetails returns the user details for the given user_id from the cache.
+// This method is a test of a multi-line comment.
+// It should not break other lines.
 func (cm *UserCacheManager) RefreshUserDetails(
 	ctx context.Context,
 	input *UserDetailsRequest,

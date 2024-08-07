@@ -259,21 +259,37 @@ func (g *Generator) generateMethod(gf *protogen.GeneratedFile, method *protogen.
 	// Get cache
 	comments := ""
 	if method.Comments.Leading != "" {
-		comment := strings.TrimSuffix(
-			strings.ReplaceAll(
-				strings.ReplaceAll(method.Comments.Leading.String(), "// ", ""),
-				"//", "",
-			),
-			" ",
-		)
-		comments = fmt.Sprintf(
-			"// Get%s",
-			comment,
-		)
+		resultComments := []string{}
+		commentLines := strings.Split(method.Comments.Leading.String(), "\n")
+
+		for index, line := range commentLines {
+			if line == "" {
+				continue
+			}
+
+			comment := strings.TrimSuffix(
+				strings.ReplaceAll(
+					strings.ReplaceAll(line, "// ", ""),
+					"//", "",
+				),
+				" ",
+			)
+
+			if index == 0 && strings.HasPrefix(comment, method.GoName) {
+				resultComments = append(resultComments, fmt.Sprintf(
+					"// Get%s",
+					comment,
+				))
+			} else {
+				resultComments = append(resultComments, fmt.Sprintf("// %s", comment))
+			}
+		}
+
+		comments = strings.Join(resultComments, "\n")
 	}
 
+	gf.P(comments)
 	gf.P(
-		comments,
 		"func (cm *",
 		managerName,
 		") Get",

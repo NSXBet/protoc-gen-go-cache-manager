@@ -77,6 +77,8 @@ message Event {
 // UserCache is the service that will be used to cache user details.
 service UserCache {
   // UserDetails returns the user details for the given user_id from the cache.
+  // This method is a test of a multi-line comment.
+  // It should not break other lines.
   rpc UserDetails(UserDetailsRequest) returns (UserDetailsResponse) {}
 }
 
