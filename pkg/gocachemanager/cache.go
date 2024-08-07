@@ -6,14 +6,20 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/proto"
 )
 
+var ErrInvalidSingleFlightType = errors.New(
+	"invalid single flight type returned from refreshing the cache",
+)
+
 type CacheManager[TInput proto.Message, TOutput proto.Message] struct {
-	prefix   string
-	wrapper  *GoCacheWrapper
-	factory  func() TOutput
-	updateFn func(context.Context, TInput) (TOutput, error)
+	prefix            string
+	wrapper           *GoCacheWrapper
+	factory           func() TOutput
+	updateFn          func(context.Context, TInput) (TOutput, error)
+	singleFlightGroup *singleflight.Group
 }
 
 func NewCacheManager[TInput proto.Message, TOutput proto.Message](
@@ -33,10 +39,11 @@ func NewCacheManager[TInput proto.Message, TOutput proto.Message](
 	}
 
 	return &CacheManager[TInput, TOutput]{
-		prefix:   prefix,
-		wrapper:  wrapper,
-		factory:  factory,
-		updateFn: updateFn,
+		prefix:            prefix,
+		wrapper:           wrapper,
+		factory:           factory,
+		updateFn:          updateFn,
+		singleFlightGroup: new(singleflight.Group),
 	}, nil
 }
 
@@ -92,27 +99,40 @@ func (cm *CacheManager[TInput, TOutput]) Refresh(
 	ctx context.Context,
 	input TInput,
 ) (TOutput, error) {
-	// TODO: singleflight
-	val, err := cm.updateFn(ctx, input)
+	var empty TOutput
+
+	key, err := cm.getKey(input)
 	if err != nil {
-		return val, fmt.Errorf("updating data: %w", err)
+		return empty, fmt.Errorf("getting key: %w", err)
+	}
+
+	val, err, _ := cm.singleFlightGroup.Do(string(key), func() (interface{}, error) {
+		val, err := cm.updateFn(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("updating data: %w", err)
+		}
+
+		return val, nil
+	})
+	if err != nil {
+		return empty, err
+	}
+
+	converted, ok := val.(TOutput)
+	if !ok {
+		return empty, fmt.Errorf("converting data: %w", ErrInvalidSingleFlightType)
 	}
 
 	data, err := proto.MarshalOptions{
 		Deterministic: true,
-	}.Marshal(val)
+	}.Marshal(converted)
 	if err != nil {
-		return val, fmt.Errorf("marshalling data: %w", err)
-	}
-
-	key, err := cm.getKey(input)
-	if err != nil {
-		return val, fmt.Errorf("getting key: %w", err)
+		return empty, fmt.Errorf("marshalling data: %w", err)
 	}
 
 	if err := cm.wrapper.Set(ctx, key, data); err != nil {
-		return val, fmt.Errorf("setting data: %w", err)
+		return empty, fmt.Errorf("setting data: %w", err)
 	}
 
-	return val, nil
+	return converted, nil
 }
