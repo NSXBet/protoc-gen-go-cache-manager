@@ -4,13 +4,22 @@ go-cache-manager is an extensible way of safely, concurrently, scalably and obse
 
 ## Usage
 
-First you need to configure protobuf files in your repository. The recommended way is to create a `proto` directory in the root of your repository and put all your protobuf configuration files there. 
+First we'll install it with:
+
+```shell
+go get github.com/NSXBet/go-cache-manager
+```
+
+For this you'll need to configure protobuf files in your repository. The recommended way is to create a `proto` directory in the root of your repository and put all your protobuf configuration files there. 
 
 Inside the proto folder you can create a namespace for your protobuf files. For example, if you have a service called
 `user` you can create a `user` directory inside the `proto` directory and put all your protobuf files there.
 
 You can also use a parent namespace like the name of your company, for example, if your company is called `acme` you can
 create a `acme` directory inside the `proto` directory and put the `user` directory inside the `acme` directory.
+
+For the contents of the proto files, you can refer to the section below `Creating the protobuf definitions for the
+cache`.
 
 ### Configuring buf
 
