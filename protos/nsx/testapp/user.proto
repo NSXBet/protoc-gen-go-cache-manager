@@ -5,7 +5,7 @@ package nsx.testapp;
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp";
+option go_package = "github.com/NSXBet/protoc-gen-go-cache-manager/gen/go/nsx/testapp";
 
 // UserDetailsRequest contains the parameters that will be used to vary the cache with.
 message UserDetailsRequest {

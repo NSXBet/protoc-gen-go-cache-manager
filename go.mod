@@ -1,4 +1,4 @@
-module github.com/NSXBet/go-cache-manager
+module github.com/NSXBet/protoc-gen-go-cache-manager
 
 go 1.22.5
 

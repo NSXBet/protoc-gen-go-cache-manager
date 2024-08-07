@@ -1,6 +1,6 @@
 package main
 
-import "github.com/NSXBet/go-cache-manager/cmd"
+import "github.com/NSXBet/protoc-gen-go-cache-manager/cmd"
 
 func main() {
 	// generate code here

@@ -16,7 +16,7 @@ go-cache-manager is an extensible way of safely, concurrently, scalably and obse
 First we'll install it with:
 
 ```shell
-go get github.com/NSXBet/go-cache-manager
+go get github.com/NSXBet/protoc-gen-go-cache-manager
 ```
 
 For this you'll need to configure protobuf files in your repository. The recommended way is to create a `proto` directory in the root of your repository and put all your protobuf configuration files there. 
@@ -60,7 +60,7 @@ plugins:
   - plugin: buf.build/protocolbuffers/go  # this plugin will be used to generate regular protobuf
     out: ../gen/go
     opt: paths=source_relative
-  - plugin: github.com/NSXbet/go-cache-manager  # this plugin will be used to generate go-cache-manager code
+  - plugin: github.com/NSXbet/protoc-gen-go-cache-manager  # this plugin will be used to generate go-cache-manager code
     out: ../gen/go
     opt:
       - paths=source_relative
@@ -153,6 +153,7 @@ import (
     "log"
     "time"
 
+    gocachemanager "github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager"
     "github.com/NSXBet/acme/gen/go/acme/usersvc"
 )
 

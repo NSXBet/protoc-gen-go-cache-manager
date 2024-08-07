@@ -2,7 +2,7 @@ version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/NSXBet/go-cache-manager/gen/go
+    default: github.com/NSXBet/protoc-gen-go-cache-manager/gen/go
 plugins:
   - plugin: buf.build/protocolbuffers/go
     out: ../gen/go

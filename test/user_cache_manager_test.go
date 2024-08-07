@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp"
-	"github.com/NSXBet/go-cache-manager/pkg/gocachemanager"
+	"github.com/NSXBet/protoc-gen-go-cache-manager/gen/go/nsx/testapp"
+	"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"

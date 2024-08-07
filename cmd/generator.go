@@ -71,7 +71,7 @@ func (g *Generator) generateFile(gen *protogen.Plugin, file *protogen.File) erro
 	gf.P("	\"context\"")
 	gf.P("	\"fmt\"")
 	gf.P()
-	gf.P("  \"github.com/NSXBet/go-cache-manager/pkg/gocachemanager\"")
+	gf.P("  \"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager\"")
 	gf.P(")")
 
 	for _, service := range file.Services {

@@ -4,7 +4,7 @@ package nsx.testapp;
 
 import "nsx/testapp/user.proto";
 
-option go_package = "github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp";
+option go_package = "github.com/NSXBet/protoc-gen-go-cache-manager/gen/go/nsx/testapp";
 
 message GetUserDetailsRequest {
   string user_id = 1;

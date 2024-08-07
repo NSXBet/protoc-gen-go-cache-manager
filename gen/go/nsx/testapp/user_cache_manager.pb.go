@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/NSXBet/go-cache-manager/pkg/gocachemanager"
+	"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager"
 )
 
 // UserCacheManager for every operation related to this service:
