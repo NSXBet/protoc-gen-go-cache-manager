@@ -10,6 +10,10 @@ type CacheSettings struct {
 	// Defaults to false, meaning in-memory cache is used.
 	skipInMemoryCache bool
 
+	// inMemoryCacheSize is the size of the in-memory cache.
+	// Defaults to 256_000_000 (256MB).
+	inMemoryCacheSize int64
+
 	// prometheusPrefix will be used whenever sending cache metrics to Prometheus.
 	prometheusPrefix string
 }
@@ -43,5 +47,11 @@ func WithSkipInMemoryCache() CacheOption {
 func WithPrometheusPrefix(prometheusPrefix string) CacheOption {
 	return func(settings *CacheSettings) {
 		settings.prometheusPrefix = prometheusPrefix
+	}
+}
+
+func WithInMemoryCacheSize(inMemoryCacheSize int64) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.inMemoryCacheSize = inMemoryCacheSize
 	}
 }

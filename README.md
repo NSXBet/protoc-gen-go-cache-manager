@@ -2,6 +2,23 @@
 
 go-cache-manager is an extensible way of safely, concurrently, scalably and observably managing cached data.
 
+## Features
+
+- **Smart**: go-cache-manager uses the singleflight package to ensure that only one goroutine is fetching the data at a
+  time. This is useful when you have multiple goroutines trying to fetch the same data at the same time. This avoids the
+  issue of the [thundering herd](https://en.wikipedia.org/wiki/Thundering_herd_problem), that can easily DDoS your
+  database.
+- **Type-Safe**: go-cache-manager uses protobuf definitions to generate the cache management code. This ensures that the
+  cache keys are always correct and that the stored cache data is always used correctly.
+- **Binary**: since go-cache-manager stores the marshalled version of the protobuf definitions, it will use less space
+  than your usual JSON storing cache.
+- **Compatible**: go-cache-manager uses protobuf, and with that, the stored data is already backwards and forwards
+  compatible, provided you follow the protobuf rules.
+- **Layered**: go-cache-manager provides layers of cache. By default you'll be using an in-memory cache, as well as a Redis cache.
+- **Configurable**: go-cache-manager allows options to be passed to the cache manager. This allows you to configure the
+  cache manager to your needs with options such as Prometheus prefix, redis endpoint and skipping the in-memory-cache
+  layer. For all the available options check the Cache Manager Options section below.
+
 ## Usage
 
 First we'll install it with:
@@ -187,4 +204,84 @@ func main() {
 
     fmt.Printf("User details: %+v\n", userDetails)
 }
+```
+
+## Cache Manager Options
+
+### WithRedisConnection
+
+This option allows you to configure the cache manager to use a Redis cache. This option takes a single string parameter
+which is the Redis endpoint. Here is an example of how you can use this option:
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "
+            },
+        }, nil
+    },
+    gocachemanager.WithRedisConnection("localhost:6379"),
+)
+```
+
+### WithPrometheusPrefix
+
+This option allows you to configure the cache manager to use a Prometheus prefix. This option takes a single string
+parameter which is the Prometheus prefix that will be used for all published metrics. Here is an example of how you can use this option:
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "
+            },
+        }, nil
+    },
+    gocachemanager.WithPrometheusPrefix("acme_user_svc"),
+)
+```
+
+### WithSkipInMemoryCache
+
+This option allows you to configure the cache manager to skip the in-memory cache. This option takes no parameters. Here is an example of how you can use this option:
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "
+            },
+        }, nil
+    },
+    gocachemanager.WithSkipInMemoryCache(),
+)
+```
+
+### WithInMemoryCacheSize
+
+This option allows you to configure the cache manager to use a specific size for the in-memory cache. This option takes a single int64 parameter which is the size of the in-memory cache. Here is an example of how you can use this option:
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "
+            },
+        }, nil
+    },
+    gocachemanager.WithInMemoryCacheSize(512_000_000), // 512MB
+)
 ```

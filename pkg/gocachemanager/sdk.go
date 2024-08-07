@@ -35,9 +35,14 @@ func NewGoCacheWrapper(
 	caches := []cache.SetterCacheInterface[[]byte]{}
 
 	if !settings.skipInMemoryCache {
+		maxSize := settings.inMemoryCacheSize
+		if maxSize == 0 {
+			maxSize = 256_000_000
+		}
+
 		ristrettoCache, err := ristretto.NewCache(&ristretto.Config{
-			NumCounters: 1000,
-			MaxCost:     100,
+			NumCounters: 1e7, // number of keys to track frequency of (10M).
+			MaxCost:     maxSize,
 			BufferItems: 64,
 		})
 		if err != nil {
