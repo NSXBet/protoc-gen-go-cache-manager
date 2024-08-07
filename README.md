@@ -60,7 +60,7 @@ plugins:
   - plugin: buf.build/protocolbuffers/go  # this plugin will be used to generate regular protobuf
     out: ../gen/go
     opt: paths=source_relative
-  - plugin: github.com/NSXbet/protoc-gen-go-cache-manager  # this plugin will be used to generate go-cache-manager code
+  - plugin: go-cache-manager  # this plugin will be used to generate go-cache-manager code
     out: ../gen/go
     opt:
       - paths=source_relative
@@ -85,7 +85,7 @@ syntax = "proto3";
 
 package nsx.testapp;
 
-option go_package = "github.com/NSXBet/acme/gen/go/acme/usersvc";
+option go_package = "github.com/acme/gen/go/acme/usersvc";
 
 // UserDetailsRequest contains the parameters that will be used to vary the cache with.
 // In this case, the user_id will be used to vary the cache. Any other parameters
@@ -154,7 +154,7 @@ import (
     "time"
 
     gocachemanager "github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager"
-    "github.com/NSXBet/acme/gen/go/acme/usersvc"
+    "github.com/acme/gen/go/acme/usersvc"
 )
 
 func main() {
