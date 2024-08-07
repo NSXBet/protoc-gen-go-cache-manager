@@ -4,20 +4,12 @@ go-cache-manager is an extensible way of safely, concurrently, scalably and obse
 
 ## Features
 
-- **Smart**: go-cache-manager uses the singleflight package to ensure that only one goroutine is fetching the data at a
-  time. This is useful when you have multiple goroutines trying to fetch the same data at the same time. This avoids the
-  issue of the [thundering herd](https://en.wikipedia.org/wiki/Thundering_herd_problem), that can easily DDoS your
-  database.
-- **Type-Safe**: go-cache-manager uses protobuf definitions to generate the cache management code. This ensures that the
-  cache keys are always correct and that the stored cache data is always used correctly.
-- **Binary**: since go-cache-manager stores the marshalled version of the protobuf definitions, it will use less space
-  than your usual JSON storing cache.
-- **Compatible**: go-cache-manager uses protobuf, and with that, the stored data is already backwards and forwards
-  compatible, provided you follow the protobuf rules.
-- **Layered**: go-cache-manager provides layers of cache. By default you'll be using an in-memory cache, as well as a Redis cache.
-- **Configurable**: go-cache-manager allows options to be passed to the cache manager. This allows you to configure the
-  cache manager to your needs with options such as Prometheus prefix, redis endpoint and skipping the in-memory-cache
-  layer. For all the available options check the Cache Manager Options section below.
+- 💡 Smart: go-cache-manager utilizes the singleflight package to ensure only one goroutine fetches the data at a time. This is especially useful when multiple goroutines try to access the same data simultaneously, preventing the [thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) that can easily DDoS your database.
+- 🔒 Type-Safe: By using protobuf definitions to generate the cache management code, go-cache-manager guarantees that cache keys are always correct and stored cache data is used properly.
+- 📦 Efficient Storage: Storing the marshalled version of the protobuf definitions, go-cache-manager uses less space than typical JSON storage.
+- 🔄 Compatible: With protobuf, the stored data is inherently backward and forward compatible, as long as protobuf rules are followed.
+- 📚 Layered: go-cache-manager offers multiple layers of cache. By default, it provides both an in-memory cache and a Redis cache.
+- ⚙️ Configurable: You can pass various options to go-cache-manager to tailor it to your needs, such as Prometheus prefix, Redis endpoint, and the option to skip the in-memory cache layer. For a complete list of options, check the Cache Manager Options section below.
 
 ## Usage
 
