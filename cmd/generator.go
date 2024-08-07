@@ -128,7 +128,7 @@ func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protoge
 	for _, method := range service.Methods {
 		gf.P(
 			"	",
-			g.methodName(g.privateManagerName(method.GoName), method.GoName),
+			g.methodName(g.privateManagerName(method.Parent.GoName), method.GoName),
 			" *gocachemanager.CacheManager[*",
 			method.Input.GoIdent.GoName,
 			", *",
@@ -212,12 +212,14 @@ func (g *Generator) generateConstructorManager(
 	var mgrs []string
 
 	gf.P(
-		g.methodName(g.privateManagerName(method.GoName), method.GoName),
+		g.methodName(g.privateManagerName(method.Parent.GoName), method.GoName),
 		", err := gocachemanager.NewCacheManager",
 		"(",
 	)
 	gf.P(
 		"\"",
+		strings.ToLower(method.Parent.GoName),
+		"::",
 		strings.ToLower(method.GoName),
 		"\",",
 	)
@@ -245,14 +247,14 @@ func (g *Generator) generateConstructorManager(
 	gf.P("}")
 	gf.P()
 
-	mgrs = append(mgrs, g.methodName(g.privateManagerName(method.GoName), method.GoName))
+	mgrs = append(mgrs, g.methodName(g.privateManagerName(method.Parent.GoName), method.GoName))
 
 	return mgrs, nil
 }
 
 func (g *Generator) generateMethod(gf *protogen.GeneratedFile, method *protogen.Method) error {
 	managerName := g.managerName(method.Parent.GoName)
-	fieldName := g.methodName(g.privateManagerName(method.GoName), method.GoName)
+	fieldName := g.methodName(g.privateManagerName(method.Parent.GoName), method.GoName)
 
 	// Get cache
 	comments := ""

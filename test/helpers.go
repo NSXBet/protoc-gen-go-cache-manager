@@ -123,5 +123,6 @@ func redisKey[TInput proto.Message](t *testing.T, input TInput) string {
 	require.NoError(t, err)
 
 	b64 := base64.StdEncoding.EncodeToString(key)
-	return fmt.Sprintf("userdetails::%s", b64)
+	cacheKey := fmt.Sprintf("usercache::userdetails::%s", b64)
+	return cacheKey
 }
