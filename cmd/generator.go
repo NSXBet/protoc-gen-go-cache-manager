@@ -154,15 +154,27 @@ func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protoge
 	refreshMethods := []string{}
 	for _, method := range service.Methods {
 		refreshMethods = append(refreshMethods, fmt.Sprintf(
-			" 	update%sFn func(context.Context, *%s) (*%s, error)",
+			"	update%sFn func(context.Context, *%s, map[string]any) (*%s, error)",
 			method.GoName,
 			method.Input.GoIdent.GoName,
 			method.Output.GoIdent.GoName,
 		))
 	}
 
+	gf.P(strings.TrimSuffix(comments, "\n"))
+	gf.P("	// Required Update Method(s):")
+	for _, method := range service.Methods {
+		gf.P(
+			"	// - update",
+			method.GoName,
+			"Fn is a function that loads the data from the storage and you",
+		)
+		gf.P(
+			"	//    can pass any dependencies required to resolve it when calling the Get and Refresh methods",
+		)
+		gf.P("	//    and these will be available as the third argument of the method.")
+	}
 	gf.P(
-		comments,
 		"func New",
 		g.managerName(service.GoName),
 		"(",
@@ -298,8 +310,9 @@ func (g *Generator) generateMethod(gf *protogen.GeneratedFile, method *protogen.
 	)
 	gf.P("  ctx context.Context,")
 	gf.P("	input *", method.Input.GoIdent.GoName, ",")
+	gf.P("	dependencies ...map[string]any,")
 	gf.P(") (*", method.Output.GoIdent.GoName, ", error) {")
-	gf.P("	return cm.", fieldName, ".Get(ctx, input)")
+	gf.P("	return cm.", fieldName, ".Get(ctx, input, dependencies...)")
 	gf.P("}")
 	gf.P()
 
@@ -322,8 +335,9 @@ func (g *Generator) generateMethod(gf *protogen.GeneratedFile, method *protogen.
 	)
 	gf.P("  ctx context.Context,")
 	gf.P("	input *", method.Input.GoIdent.GoName, ",")
+	gf.P("	dependencies ...map[string]any,")
 	gf.P(") (*", method.Output.GoIdent.GoName, ", error) {")
-	gf.P("	return cm.", fieldName, ".Refresh(ctx, input)")
+	gf.P("	return cm.", fieldName, ".Refresh(ctx, input, dependencies...)")
 	gf.P("}")
 	gf.P()
 

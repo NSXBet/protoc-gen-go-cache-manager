@@ -123,6 +123,7 @@ func (suite *TestSuite) TestCanGetTournament() {
 	redisEndpoint, err := suite.redisContainer.Endpoint(context.Background(), "")
 	require.NoError(t, err)
 
+	loader := tournamentLoader(t)
 	manager := tournamentCacheManager(t, redisEndpoint)
 	keyInput := &testapp.MainTournamentsRequest{
 		Empty: &emptypb.Empty{},
@@ -132,6 +133,9 @@ func (suite *TestSuite) TestCanGetTournament() {
 	tourn, err := manager.GetMainTournaments(
 		context.Background(),
 		keyInput,
+		map[string]any{
+			"loader": loader,
+		},
 	)
 	require.NoError(t, err)
 	require.NotNil(t, tourn)

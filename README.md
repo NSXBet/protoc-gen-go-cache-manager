@@ -204,6 +204,51 @@ func main() {
 }
 ```
 
+### How to use dependencies in my cache manager?
+
+If you need to access resources like database connections, API clients, etc., you can pass them to each method of your
+cache manager (`Get*` and `Refresh*`) as the third argument and use them in your update function. Here is an example of
+this:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "time"
+
+    gocachemanager "github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager"
+    "github.com/acme/gen/go/acme/usersvc"
+)
+
+func main() {
+    manager, err := usersvc.NewUserCacheManager(
+        func(ctx context.Context, input *usersvc.UserDetailsRequest, deps map[string]any) (*usersvc.UserDetailsResponse, error) {
+        db := deps["db"].(*sql.DB) // or any other argument you are passing in.
+
+        // do whatever you need to do with the db connection here.
+        // then return the result from the data you gathered
+        // ...
+    }
+    if err != nil {
+        log.Fatalf("error creating cache manager: %v", err)
+    }
+
+    userDetails, err := manager.GetUserDetails(context.Background(), &usersvc.UserDetailsRequest{
+        UserId: "123",
+    }, map[string]any{
+        "db": db, // or any other dependency you need to pass in.
+    })
+    if err != nil {
+        log.Fatalf("error getting user details: %v", err)
+    }
+
+    fmt.Printf("User details: %+v\n", userDetails)
+}
+```
+
 ## Cache Manager Options
 
 You can pass as many of these to your cache managers as you require. Remember that there are some options that are

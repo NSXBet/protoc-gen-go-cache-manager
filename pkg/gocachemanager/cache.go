@@ -18,14 +18,14 @@ type CacheManager[TInput proto.Message, TOutput proto.Message] struct {
 	prefix            string
 	wrapper           *GoCacheWrapper
 	factory           func() TOutput
-	updateFn          func(context.Context, TInput) (TOutput, error)
+	updateFn          func(context.Context, TInput, map[string]any) (TOutput, error)
 	singleFlightGroup *singleflight.Group
 }
 
 func NewCacheManager[TInput proto.Message, TOutput proto.Message](
 	prefix string,
 	factory func() TOutput,
-	updateFn func(context.Context, TInput) (TOutput, error),
+	updateFn func(context.Context, TInput, map[string]any) (TOutput, error),
 	options ...CacheOption,
 ) (*CacheManager[TInput, TOutput], error) {
 	settings := DefaultCacheSettings()
@@ -63,6 +63,7 @@ func (cm *CacheManager[TInput, TOutput]) getKey(
 func (cm *CacheManager[TInput, TOutput]) Get(
 	ctx context.Context,
 	input TInput,
+	dependencies ...map[string]any,
 ) (TOutput, error) {
 	var val TOutput
 
@@ -87,7 +88,7 @@ func (cm *CacheManager[TInput, TOutput]) Get(
 		return result, nil
 	}
 
-	output, err := cm.Refresh(ctx, input)
+	output, err := cm.Refresh(ctx, input, dependencies...)
 	if err != nil {
 		return val, fmt.Errorf("updating data: %w", err)
 	}
@@ -98,6 +99,7 @@ func (cm *CacheManager[TInput, TOutput]) Get(
 func (cm *CacheManager[TInput, TOutput]) Refresh(
 	ctx context.Context,
 	input TInput,
+	dependencies ...map[string]any,
 ) (TOutput, error) {
 	var empty TOutput
 
@@ -107,7 +109,11 @@ func (cm *CacheManager[TInput, TOutput]) Refresh(
 	}
 
 	val, err, _ := cm.singleFlightGroup.Do(string(key), func() (interface{}, error) {
-		val, err := cm.updateFn(ctx, input)
+		deps := map[string]any{}
+		if len(dependencies) > 0 {
+			deps = dependencies[0]
+		}
+		val, err := cm.updateFn(ctx, input, deps)
 		if err != nil {
 			return nil, fmt.Errorf("updating data: %w", err)
 		}

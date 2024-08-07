@@ -27,7 +27,7 @@ func userCacheManager(
 	)
 
 	userCacheManager, err := testapp.NewUserCacheManager(
-		func(_ context.Context, input *testapp.UserDetailsRequest) (*testapp.UserDetailsResponse, error) {
+		func(_ context.Context, input *testapp.UserDetailsRequest, _ map[string]any) (*testapp.UserDetailsResponse, error) {
 			return &testapp.UserDetailsResponse{
 				User: &testapp.User{
 					UserId: input.UserId,
@@ -43,16 +43,33 @@ func userCacheManager(
 	return userCacheManager
 }
 
-func tournamentCacheManager(t *testing.T, redisEndpoint string) *testapp.TournamentCacheManager {
+type TournamentLoader struct{}
+
+func (l *TournamentLoader) LoadTournaments() []*testapp.Tournament {
+	return []*testapp.Tournament{
+		testTournament(true),
+		testTournament(false),
+	}
+}
+
+func tournamentLoader(t *testing.T) *TournamentLoader {
+	t.Helper()
+
+	return &TournamentLoader{}
+}
+
+func tournamentCacheManager(
+	t *testing.T,
+	redisEndpoint string,
+) *testapp.TournamentCacheManager {
 	t.Helper()
 
 	manager, err := testapp.NewTournamentCacheManager(
-		func(_ context.Context, input *testapp.MainTournamentsRequest) (*testapp.MainTournamentsResponse, error) {
+		func(_ context.Context, input *testapp.MainTournamentsRequest, deps map[string]any) (*testapp.MainTournamentsResponse, error) {
+			tournLoader := deps["loader"].(*TournamentLoader)
+
 			return &testapp.MainTournamentsResponse{
-				Tournaments: []*testapp.Tournament{
-					testTournament(t, true),
-					testTournament(t, false),
-				},
+				Tournaments: tournLoader.LoadTournaments(),
 			}, nil
 		},
 		gocachemanager.WithRedisConnection(redisEndpoint),
@@ -63,8 +80,7 @@ func tournamentCacheManager(t *testing.T, redisEndpoint string) *testapp.Tournam
 	return manager
 }
 
-func testTournament(t *testing.T, useStringPrize bool) *testapp.Tournament {
-	t.Helper()
+func testTournament(useStringPrize bool) *testapp.Tournament {
 	dt := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
 	dt2 := time.Date(2021, 1, 2, 0, 0, 0, 0, time.UTC)
 

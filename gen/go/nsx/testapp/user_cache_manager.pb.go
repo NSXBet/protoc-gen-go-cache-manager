@@ -17,8 +17,12 @@ type UserCacheManager struct {
 
 // NewUserCacheManager is the constructor method for this service:
 // UserCache is the service that will be used to cache user details.
+// Required Update Method(s):
+//   - updateUserDetailsFn is a function that loads the data from the storage and you
+//     can pass any dependencies required to resolve it when calling the Get and Refresh methods
+//     and these will be available as the third argument of the method.
 func NewUserCacheManager(
-	updateUserDetailsFn func(context.Context, *UserDetailsRequest) (*UserDetailsResponse, error),
+	updateUserDetailsFn func(context.Context, *UserDetailsRequest, map[string]any) (*UserDetailsResponse, error),
 	options ...gocachemanager.CacheOption,
 ) (*UserCacheManager, error) {
 	userCacheManager_UserDetails, err := gocachemanager.NewCacheManager(
@@ -42,8 +46,9 @@ func NewUserCacheManager(
 func (cm *UserCacheManager) GetUserDetails(
 	ctx context.Context,
 	input *UserDetailsRequest,
+	dependencies ...map[string]any,
 ) (*UserDetailsResponse, error) {
-	return cm.userCacheManager_UserDetails.Get(ctx, input)
+	return cm.userCacheManager_UserDetails.Get(ctx, input, dependencies...)
 }
 
 // Eagerly refresh the cache for the method that:
@@ -53,16 +58,21 @@ func (cm *UserCacheManager) GetUserDetails(
 func (cm *UserCacheManager) RefreshUserDetails(
 	ctx context.Context,
 	input *UserDetailsRequest,
+	dependencies ...map[string]any,
 ) (*UserDetailsResponse, error) {
-	return cm.userCacheManager_UserDetails.Refresh(ctx, input)
+	return cm.userCacheManager_UserDetails.Refresh(ctx, input, dependencies...)
 }
 
 type TournamentCacheManager struct {
 	tournamentCacheManager_MainTournaments *gocachemanager.CacheManager[*MainTournamentsRequest, *MainTournamentsResponse]
 }
 
+// Required Update Method(s):
+// - updateMainTournamentsFn is a function that loads the data from the storage and you
+//    can pass any dependencies required to resolve it when calling the Get and Refresh methods
+//    and these will be available as the third argument of the method.
 func NewTournamentCacheManager(
-	updateMainTournamentsFn func(context.Context, *MainTournamentsRequest) (*MainTournamentsResponse, error),
+	updateMainTournamentsFn func(context.Context, *MainTournamentsRequest, map[string]any) (*MainTournamentsResponse, error),
 	options ...gocachemanager.CacheOption,
 ) (*TournamentCacheManager, error) {
 	tournamentCacheManager_MainTournaments, err := gocachemanager.NewCacheManager(
@@ -83,13 +93,15 @@ func NewTournamentCacheManager(
 func (cm *TournamentCacheManager) GetMainTournaments(
 	ctx context.Context,
 	input *MainTournamentsRequest,
+	dependencies ...map[string]any,
 ) (*MainTournamentsResponse, error) {
-	return cm.tournamentCacheManager_MainTournaments.Get(ctx, input)
+	return cm.tournamentCacheManager_MainTournaments.Get(ctx, input, dependencies...)
 }
 
 func (cm *TournamentCacheManager) RefreshMainTournaments(
 	ctx context.Context,
 	input *MainTournamentsRequest,
+	dependencies ...map[string]any,
 ) (*MainTournamentsResponse, error) {
-	return cm.tournamentCacheManager_MainTournaments.Refresh(ctx, input)
+	return cm.tournamentCacheManager_MainTournaments.Refresh(ctx, input, dependencies...)
 }
