@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/NSXBet/go-cache-manager/gen/go/nsx/testapp"
+	"github.com/NSXBet/go-cache-manager/pkg/gocachemanager"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -172,4 +173,52 @@ func (suite *TestSuite) TestCanGetTournament() {
 			require.Equal(t, dt, event.GetStartTime().AsTime())
 		}
 	}
+}
+
+func (suite *TestSuite) TestSkipInMemoryCache() {
+	// ARRANGE
+	t := suite.T()
+	redisEndpoint, err := suite.redisContainer.Endpoint(context.Background(), "")
+	require.NoError(t, err)
+
+	manager := userCacheManager(
+		t,
+		redisEndpoint,
+		gocachemanager.WithSkipInMemoryCache(),
+	)
+	keyInput := &testapp.UserDetailsRequest{
+		UserId: "1",
+	}
+
+	// ACT
+	userDetails, err := manager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+
+	// ASSERT
+	require.NoError(t, err)
+	require.NotNil(t, userDetails)
+	require.NotNil(t, userDetails.User)
+
+	user := userDetails.User
+
+	require.Equal(t, "Test User", user.GetName())
+	require.Equal(t, "1", user.GetUserId())
+	require.Equal(t, "test@user.com", user.GetEmail())
+
+	// get from redis
+	redisKey := redisKey(t, keyInput)
+	data, err := suite.redisClient.Get(context.Background(), redisKey).Result()
+	require.NoError(t, err)
+	require.NotNil(t, data)
+
+	userDetailsResponse := &testapp.UserDetailsResponse{}
+	err = proto.Unmarshal([]byte(data), userDetailsResponse)
+	require.NoError(t, err)
+
+	require.NotNil(t, userDetailsResponse.User)
+	require.Equal(t, "Test User", userDetailsResponse.User.GetName())
+	require.Equal(t, "1", userDetailsResponse.User.GetUserId())
+	require.Equal(t, "test@user.com", userDetailsResponse.User.GetEmail())
 }

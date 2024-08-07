@@ -9,6 +9,7 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/eko/gocache/lib/v4/cache"
+	"github.com/eko/gocache/lib/v4/metrics"
 	"github.com/eko/gocache/lib/v4/store"
 	redis_store "github.com/eko/gocache/store/redis/v4"
 	ristretto_store "github.com/eko/gocache/store/ristretto/v4"
@@ -21,7 +22,7 @@ var ErrCacheMiss = errors.New("cache miss")
 type GoCacheWrapper struct {
 	prefix       string
 	expiration   time.Duration
-	cacheManager *cache.ChainCache[[]byte]
+	cacheManager cache.CacheInterface[[]byte]
 }
 
 func NewGoCacheWrapper(
@@ -31,34 +32,48 @@ func NewGoCacheWrapper(
 ) (*GoCacheWrapper, error) {
 	var redisStore *redis_store.RedisStore
 
+	caches := []cache.SetterCacheInterface[[]byte]{}
+
+	if !settings.skipInMemoryCache {
+		ristrettoCache, err := ristretto.NewCache(&ristretto.Config{
+			NumCounters: 1000,
+			MaxCost:     100,
+			BufferItems: 64,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("creating ristretto instance: %w", err)
+		}
+
+		ristrettoStore := ristretto_store.NewRistretto(ristrettoCache)
+		caches = append(caches, cache.New[[]byte](ristrettoStore))
+	}
+
 	if settings.redisConnection != "" {
 		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
 
 		// Initialize stores
 		redisStore = redis_store.NewRedis(redisClient, store.WithExpiration(5*time.Second))
-	}
 
-	ristrettoCache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1000,
-		MaxCost:     100,
-		BufferItems: 64,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating ristretto instance: %w", err)
-	}
-
-	ristrettoStore := ristretto_store.NewRistretto(ristrettoCache)
-
-	caches := []cache.SetterCacheInterface[[]byte]{
-		cache.New[[]byte](ristrettoStore),
-	}
-
-	if redisStore != nil {
 		caches = append(caches, cache.New[[]byte](redisStore))
 	}
 
+	if len(caches) == 0 {
+		return nil, errors.New("no cache store is configured")
+	}
+
 	// Initialize chained cache
-	cacheManager := cache.NewChain[[]byte](caches...)
+	var cacheManager cache.CacheInterface[[]byte]
+
+	if settings.prometheusPrefix == "" {
+		cacheManager = cache.NewChain(caches...)
+	} else {
+		promMetrics := metrics.NewPrometheus(settings.prometheusPrefix)
+
+		cacheManager = cache.NewMetric(
+			promMetrics,
+			cache.NewChain(caches...),
+		)
+	}
 
 	return &GoCacheWrapper{
 		prefix:       prefix,

@@ -14,8 +14,17 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func userCacheManager(t *testing.T, redisEndpoint string) *testapp.UserCacheManager {
+func userCacheManager(
+	t *testing.T,
+	redisEndpoint string,
+	options ...gocachemanager.CacheOption,
+) *testapp.UserCacheManager {
 	t.Helper()
+
+	options = append(
+		options,
+		gocachemanager.WithRedisConnection(redisEndpoint),
+	)
 
 	userCacheManager, err := testapp.NewUserCacheManager(
 		func(_ context.Context, input *testapp.UserDetailsRequest) (*testapp.UserDetailsResponse, error) {
@@ -27,7 +36,7 @@ func userCacheManager(t *testing.T, redisEndpoint string) *testapp.UserCacheMana
 				},
 			}, nil
 		},
-		gocachemanager.WithRedisConnection(redisEndpoint),
+		options...,
 	)
 	require.NoError(t, err)
 
@@ -47,6 +56,7 @@ func tournamentCacheManager(t *testing.T, redisEndpoint string) *testapp.Tournam
 			}, nil
 		},
 		gocachemanager.WithRedisConnection(redisEndpoint),
+		gocachemanager.WithPrometheusPrefix("test"),
 	)
 	require.NoError(t, err)
 
