@@ -32,6 +32,11 @@ cache`.
 
 ### Configuring buf
 
+* [Installing buf](https://buf.build/docs/installation)
+* [Detecting Breaking Changes](https://buf.build/docs/breaking/overview)
+* [Linting proto files](https://buf.build/docs/lint/overview)
+* [Formatting proto files](https://buf.build/docs/format/style)
+
 After creating the protobuf files you need to configure the `buf.yaml` file in the root of your repository. Here is an example of a `buf.yaml` file:
 
 ```yaml
