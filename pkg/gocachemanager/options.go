@@ -1,5 +1,7 @@
 package gocachemanager
 
+import "time"
+
 // CacheSettings contains the configuration for building a cache manager.
 type CacheSettings struct {
 	// RedisConnection is the connection string for the Redis server.
@@ -16,6 +18,10 @@ type CacheSettings struct {
 
 	// prometheusPrefix will be used whenever sending cache metrics to Prometheus.
 	prometheusPrefix string
+
+	// expiration is the expiration time for the cache.
+	// Defaults to 5 seconds.
+	expiration time.Duration
 }
 
 // DefaultCacheSettings returns the default cache settings.
@@ -53,5 +59,11 @@ func WithPrometheusPrefix(prometheusPrefix string) CacheOption {
 func WithInMemoryCacheSize(inMemoryCacheSize int64) CacheOption {
 	return func(settings *CacheSettings) {
 		settings.inMemoryCacheSize = inMemoryCacheSize
+	}
+}
+
+func WithExpiration(expiration time.Duration) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.expiration = expiration
 	}
 }

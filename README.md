@@ -281,3 +281,22 @@ manager, err := usersvc.NewUserCacheManager(
     gocachemanager.WithInMemoryCacheSize(512_000_000), // 512MB
 )
 ```
+
+### WithExpiration
+
+This option allows you to configure the cache manager to use a specific expiration time for the cache (defaults to `5s`). This option takes a single time.Duration parameter which is the expiration time of the cache. Here is an example of how you can use this option:
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "
+            },
+        }, nil
+    },
+    gocachemanager.WithExpiration(5 * time.Minute),
+)
+```

@@ -30,8 +30,6 @@ func NewGoCacheWrapper(
 	expiration time.Duration,
 	settings *CacheSettings,
 ) (*GoCacheWrapper, error) {
-	var redisStore *redis_store.RedisStore
-
 	caches := []cache.SetterCacheInterface[[]byte]{}
 
 	if !settings.skipInMemoryCache {
@@ -57,7 +55,11 @@ func NewGoCacheWrapper(
 		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
 
 		// Initialize stores
-		redisStore = redis_store.NewRedis(redisClient, store.WithExpiration(5*time.Second))
+		expiration := 5 * time.Second
+		if settings.expiration != 0 {
+			expiration = settings.expiration
+		}
+		redisStore := redis_store.NewRedis(redisClient, store.WithExpiration(expiration))
 
 		caches = append(caches, cache.New[[]byte](redisStore))
 	}
