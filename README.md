@@ -13,10 +13,10 @@ go-cache-manager is an extensible way of safely, concurrently, scalably and obse
 
 ## Usage
 
-First we'll install it with:
+First we'll install it with (if you wish a specific version change `@latest` to the version you want, like `@v0.4.0`):
 
 ```shell
-go get github.com/NSXBet/protoc-gen-go-cache-manager
+go install github.com/NSXBet/protoc-gen-go-cache-manager@latest
 ```
 
 For this you'll need to configure protobuf files in your repository. The recommended way is to create a `proto` directory in the root of your repository and put all your protobuf configuration files there. 
