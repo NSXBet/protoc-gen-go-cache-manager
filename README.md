@@ -133,6 +133,8 @@ service UserCache {
   // This will generate a `.GetUserDetails` method to either return cached data or refresh and return,
   // and a `.RefreshUserDetails` method to refresh the cache, independently of the cache state,
   // while also returning the data.
+  // We'll also generate a `.ReplaceUserDetails` method to replace the cache data with the given data.
+  // Lastly we'll get a `DeleteUserDetails` method to delete the cache data.
   rpc UserDetails(UserDetailsRequest) returns (UserDetailsResponse) {}
 
   // You can add as many cache methods as you want here.
