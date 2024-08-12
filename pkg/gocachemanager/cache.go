@@ -129,9 +129,25 @@ func (cm *CacheManager[TInput, TOutput]) Refresh(
 		return empty, fmt.Errorf("converting data: %w", ErrInvalidSingleFlightType)
 	}
 
+	return cm.Replace(ctx, input, converted, dependencies...)
+}
+
+func (cm *CacheManager[TInput, TOutput]) Replace(
+	ctx context.Context,
+	input TInput,
+	newValue TOutput,
+	dependencies ...map[string]any,
+) (TOutput, error) {
+	var empty TOutput
+
+	key, err := cm.getKey(input)
+	if err != nil {
+		return empty, fmt.Errorf("getting key: %w", err)
+	}
+
 	data, err := proto.MarshalOptions{
 		Deterministic: true,
-	}.Marshal(converted)
+	}.Marshal(newValue)
 	if err != nil {
 		return empty, fmt.Errorf("marshalling data: %w", err)
 	}
@@ -140,5 +156,22 @@ func (cm *CacheManager[TInput, TOutput]) Refresh(
 		return empty, fmt.Errorf("setting data: %w", err)
 	}
 
-	return converted, nil
+	return newValue, nil
+}
+
+func (cm *CacheManager[TInput, TOutput]) Delete(
+	ctx context.Context,
+	input TInput,
+	dependencies ...map[string]any,
+) error {
+	key, err := cm.getKey(input)
+	if err != nil {
+		return fmt.Errorf("getting key: %w", err)
+	}
+
+	if err := cm.wrapper.Delete(ctx, key); err != nil {
+		return fmt.Errorf("deleting data: %w", err)
+	}
+
+	return nil
 }

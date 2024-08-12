@@ -1,0 +1,41 @@
+name: Pull Request
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  unit:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+      - name: Go Private Modules
+        run: |
+          GOPRIVATE=${GOPRIVATE:=github.com/NSXBet/*}
+          echo "GOPRIVATE=$GOPRIVATE" >> $GITHUB_ENV
+          git config --global url."https://${{ secrets.GHA_PAT }}@github.com/".insteadOf "https://github.com/"
+      - name: Test
+        env:
+          ENVIRONMENT: ci
+        run: make test
+  Generate:
+    name: Generate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+      - name: Go Private Modules
+        run: |
+          GOPRIVATE=${GOPRIVATE:=github.com/NSXBet/*}
+          echo "GOPRIVATE=$GOPRIVATE" >> $GITHUB_ENV
+          git config --global url."https://${{ secrets.GHA_PAT }}@github.com/".insteadOf "https://github.com/"
+      - name: Generate
+        run: |
+          make gen && (git diff --quiet --exit-code || (echo "❌ Uncommitted changes detected. Please run <code>make gen</code> and commit them." >> $GITHUB_STEP_SUMMARY && echo "<pre lang=\"diff\"><code>$(git diff)</code></pre>" >> $GITHUB_STEP_SUMMARY && exit 1))

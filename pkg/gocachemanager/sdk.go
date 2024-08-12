@@ -114,3 +114,9 @@ func (gcw *GoCacheWrapper) Set(ctx context.Context, key []byte, value []byte) er
 
 	return gcw.cacheManager.Set(ctx, strKey, value, store.WithExpiration(gcw.expiration))
 }
+
+func (gcw *GoCacheWrapper) Delete(ctx context.Context, key []byte) error {
+	strKey := gcw.getKey(key)
+
+	return gcw.cacheManager.Delete(ctx, strKey)
+}

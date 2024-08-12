@@ -317,29 +317,51 @@ func (g *Generator) generateMethod(gf *protogen.GeneratedFile, method *protogen.
 	gf.P()
 
 	// Set cache
-	comments = ""
-	if method.Comments.Leading != "" {
-		comments = fmt.Sprintf(
-			"// Eagerly refresh the cache for the method that:\n%s",
-			method.Comments.Leading.String(),
-		)
-	}
+	for _, methodPrefix := range []string{"Refresh", "Replace", "Delete"} {
+		comments = ""
+		if method.Comments.Leading != "" {
+			comments = fmt.Sprintf(
+				"// Eagerly %s the cache for the method that:\n%s",
+				methodPrefix,
+				method.Comments.Leading.String(),
+			)
+		}
 
-	gf.P(
-		comments,
-		"func (cm *",
-		managerName,
-		") Refresh",
-		method.GoName,
-		"(",
-	)
-	gf.P("  ctx context.Context,")
-	gf.P("	input *", method.Input.GoIdent.GoName, ",")
-	gf.P("	dependencies ...map[string]any,")
-	gf.P(") (*", method.Output.GoIdent.GoName, ", error) {")
-	gf.P("	return cm.", fieldName, ".Refresh(ctx, input, dependencies...)")
-	gf.P("}")
-	gf.P()
+		gf.P(
+			comments,
+			"func (cm *",
+			managerName,
+			") ",
+			methodPrefix,
+			method.GoName,
+			"(",
+		)
+		gf.P("  ctx context.Context,")
+		gf.P("	input *", method.Input.GoIdent.GoName, ",")
+
+		if methodPrefix == "Replace" {
+			gf.P("	newValue *", method.Output.GoIdent.GoName, ",")
+		}
+
+		gf.P("	dependencies ...map[string]any,")
+		if methodPrefix == "Delete" {
+			gf.P(") error {")
+		} else {
+			gf.P(") (*", method.Output.GoIdent.GoName, ", error) {")
+		}
+		gf.P("	return cm.", fieldName, ".", methodPrefix, "(")
+		gf.P("	ctx,")
+		gf.P("	input, ")
+
+		if methodPrefix == "Replace" {
+			gf.P("newValue, ")
+		}
+
+		gf.P("	dependencies...,")
+		gf.P(")")
+		gf.P("}")
+		gf.P()
+	}
 
 	return nil
 }

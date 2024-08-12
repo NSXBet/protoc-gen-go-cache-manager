@@ -51,7 +51,7 @@ func (cm *UserCacheManager) GetUserDetails(
 	return cm.userCacheManager_UserDetails.Get(ctx, input, dependencies...)
 }
 
-// Eagerly refresh the cache for the method that:
+// Eagerly Refresh the cache for the method that:
 // UserDetails returns the user details for the given user_id from the cache.
 // This method is a test of a multi-line comment.
 // It should not break other lines.
@@ -60,7 +60,45 @@ func (cm *UserCacheManager) RefreshUserDetails(
 	input *UserDetailsRequest,
 	dependencies ...map[string]any,
 ) (*UserDetailsResponse, error) {
-	return cm.userCacheManager_UserDetails.Refresh(ctx, input, dependencies...)
+	return cm.userCacheManager_UserDetails.Refresh(
+		ctx,
+		input,
+		dependencies...,
+	)
+}
+
+// Eagerly Replace the cache for the method that:
+// UserDetails returns the user details for the given user_id from the cache.
+// This method is a test of a multi-line comment.
+// It should not break other lines.
+func (cm *UserCacheManager) ReplaceUserDetails(
+	ctx context.Context,
+	input *UserDetailsRequest,
+	newValue *UserDetailsResponse,
+	dependencies ...map[string]any,
+) (*UserDetailsResponse, error) {
+	return cm.userCacheManager_UserDetails.Replace(
+		ctx,
+		input,
+		newValue,
+		dependencies...,
+	)
+}
+
+// Eagerly Delete the cache for the method that:
+// UserDetails returns the user details for the given user_id from the cache.
+// This method is a test of a multi-line comment.
+// It should not break other lines.
+func (cm *UserCacheManager) DeleteUserDetails(
+	ctx context.Context,
+	input *UserDetailsRequest,
+	dependencies ...map[string]any,
+) error {
+	return cm.userCacheManager_UserDetails.Delete(
+		ctx,
+		input,
+		dependencies...,
+	)
 }
 
 type TournamentCacheManager struct {
@@ -103,5 +141,35 @@ func (cm *TournamentCacheManager) RefreshMainTournaments(
 	input *MainTournamentsRequest,
 	dependencies ...map[string]any,
 ) (*MainTournamentsResponse, error) {
-	return cm.tournamentCacheManager_MainTournaments.Refresh(ctx, input, dependencies...)
+	return cm.tournamentCacheManager_MainTournaments.Refresh(
+		ctx,
+		input,
+		dependencies...,
+	)
+}
+
+func (cm *TournamentCacheManager) ReplaceMainTournaments(
+	ctx context.Context,
+	input *MainTournamentsRequest,
+	newValue *MainTournamentsResponse,
+	dependencies ...map[string]any,
+) (*MainTournamentsResponse, error) {
+	return cm.tournamentCacheManager_MainTournaments.Replace(
+		ctx,
+		input,
+		newValue,
+		dependencies...,
+	)
+}
+
+func (cm *TournamentCacheManager) DeleteMainTournaments(
+	ctx context.Context,
+	input *MainTournamentsRequest,
+	dependencies ...map[string]any,
+) error {
+	return cm.tournamentCacheManager_MainTournaments.Delete(
+		ctx,
+		input,
+		dependencies...,
+	)
 }

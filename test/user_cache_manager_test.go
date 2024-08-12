@@ -8,6 +8,7 @@ import (
 	"github.com/NSXBet/protoc-gen-go-cache-manager/gen/go/nsx/testapp"
 	"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager"
 	"github.com/google/uuid"
+	redis "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -225,4 +226,108 @@ func (suite *TestSuite) TestSkipInMemoryCache() {
 	require.Equal(t, "Test User", userDetailsResponse.User.GetName())
 	require.Equal(t, "1", userDetailsResponse.User.GetUserId())
 	require.Equal(t, "test@user.com", userDetailsResponse.User.GetEmail())
+}
+
+func (suite *TestSuite) TestCanDeleteDataFromCache() {
+	// ARRANGE
+	t := suite.T()
+	redisEndpoint, err := suite.redisContainer.Endpoint(context.Background(), "")
+	require.NoError(t, err)
+
+	manager := userCacheManager(t, redisEndpoint)
+	keyInput := &testapp.UserDetailsRequest{
+		UserId: "1",
+	}
+
+	userDetails, err := manager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, userDetails)
+	require.NotNil(t, userDetails.User)
+
+	// get from redis
+	rk := redisKey(t, keyInput)
+	data, err := suite.redisClient.Get(context.Background(), rk).Result()
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	// ACT
+	err = manager.DeleteUserDetails(
+		context.Background(),
+		keyInput,
+	)
+
+	// ASSERT
+	require.NoError(t, err)
+
+	// get from redis
+	rk = redisKey(t, keyInput)
+	data, err = suite.redisClient.Get(context.Background(), rk).Result()
+	require.ErrorIs(t, err, redis.Nil)
+	require.Empty(t, data)
+}
+
+func (suite *TestSuite) TestCanReplaceDataFromCache() {
+	// ARRANGE
+	t := suite.T()
+	redisEndpoint, err := suite.redisContainer.Endpoint(context.Background(), "")
+	require.NoError(t, err)
+
+	manager := userCacheManager(t, redisEndpoint)
+	keyInput := &testapp.UserDetailsRequest{
+		UserId: "1",
+	}
+
+	userDetails, err := manager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, userDetails)
+	require.NotNil(t, userDetails.User)
+
+	// get from redis
+	rk := redisKey(t, keyInput)
+	data, err := suite.redisClient.Get(context.Background(), rk).Result()
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+	require.NotEqual(t, "Replaced User", userDetails.User.GetName())
+	require.NotEqual(t, "replaced@user.com", userDetails.User.GetEmail())
+
+	// ACT
+	replacedUser, err := manager.ReplaceUserDetails(
+		context.Background(),
+		keyInput,
+		&testapp.UserDetailsResponse{
+			User: &testapp.User{
+				UserId: keyInput.UserId,
+				Name:   "Replaced User",
+				Email:  "replaced@user.com",
+			},
+		},
+	)
+
+	// ASSERT
+	require.NoError(t, err)
+	require.Equal(t, "Replaced User", replacedUser.User.GetName())
+	require.Equal(t, "1", replacedUser.User.GetUserId())
+	require.Equal(t, "replaced@user.com", replacedUser.User.GetEmail())
+
+	// get from redis
+	rk = redisKey(t, keyInput)
+	data, err = suite.redisClient.Get(context.Background(), rk).Result()
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	var userDetailsResponse testapp.UserDetailsResponse
+
+	err = proto.Unmarshal([]byte(data), &userDetailsResponse)
+	require.NoError(t, err)
+
+	require.NotNil(t, userDetailsResponse.User)
+	require.Equal(t, "Replaced User", userDetailsResponse.User.GetName())
+	require.Equal(t, "1", userDetailsResponse.User.GetUserId())
+	require.Equal(t, "replaced@user.com", userDetailsResponse.User.GetEmail())
 }
