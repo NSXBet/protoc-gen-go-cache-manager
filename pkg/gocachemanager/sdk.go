@@ -54,11 +54,10 @@ func NewGoCacheWrapper(
 	if settings.redisConnection != "" {
 		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
 
-		// Initialize stores
-		expiration := 5 * time.Second
 		if settings.expiration != 0 {
 			expiration = settings.expiration
 		}
+
 		redisStore := redis_store.NewRedis(redisClient, store.WithExpiration(expiration))
 
 		caches = append(caches, cache.New[[]byte](redisStore))
