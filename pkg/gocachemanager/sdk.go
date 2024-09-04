@@ -73,7 +73,13 @@ func NewGoCacheWrapper(
 	if settings.prometheusPrefix == "" {
 		cacheManager = cache.NewChain(caches...)
 	} else {
-		promMetrics := metrics.NewPrometheus(settings.prometheusPrefix)
+		var promOpts []metrics.PrometheusOption
+
+		if len(settings.prometheusNamespace) > 0 {
+			promOpts = append(promOpts, metrics.WithNamespace(settings.prometheusNamespace))
+		}
+
+		promMetrics := metrics.NewPrometheus(settings.prometheusPrefix, promOpts...)
 
 		cacheManager = cache.NewMetric(
 			promMetrics,
