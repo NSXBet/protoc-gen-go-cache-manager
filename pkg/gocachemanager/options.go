@@ -19,6 +19,9 @@ type CacheSettings struct {
 	// prometheusPrefix will be used whenever sending cache metrics to Prometheus.
 	prometheusPrefix string
 
+	// prometheusNamespace will be used whenever sending cache metrics to Prometheus.
+	prometheusNamespace string
+
 	// expiration is the expiration time for the cache.
 	// Defaults to 5 seconds.
 	expiration time.Duration
@@ -53,6 +56,13 @@ func WithSkipInMemoryCache() CacheOption {
 func WithPrometheusPrefix(prometheusPrefix string) CacheOption {
 	return func(settings *CacheSettings) {
 		settings.prometheusPrefix = prometheusPrefix
+	}
+}
+
+// WithPrometheusNamespace is a cache option for setting the Prometheus namespace.
+func WithPrometheusNamespace(prometheusNamespace string) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.prometheusNamespace = prometheusNamespace
 	}
 }
 
