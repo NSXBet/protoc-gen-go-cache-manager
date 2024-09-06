@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -48,8 +49,11 @@ func (suite *TestSuite) TestCanGetDataFromCache() {
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
+	bytes, err := base64.StdEncoding.DecodeString(data)
+	require.NoError(t, err)
+
 	userDetailsResponse := &testapp.UserDetailsResponse{}
-	err = proto.Unmarshal([]byte(data), userDetailsResponse)
+	err = proto.Unmarshal(bytes, userDetailsResponse)
 	require.NoError(t, err)
 
 	require.NotNil(t, userDetailsResponse.User)
@@ -108,8 +112,11 @@ func (suite *TestSuite) TestCanRefreshDataFromCache() {
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
+	bytes, err := base64.StdEncoding.DecodeString(data)
+	require.NoError(t, err)
+
 	userDetailsResponse := &testapp.UserDetailsResponse{}
-	err = proto.Unmarshal([]byte(data), userDetailsResponse)
+	err = proto.Unmarshal(bytes, userDetailsResponse)
 	require.NoError(t, err)
 
 	require.NotNil(t, userDetailsResponse.User)
@@ -195,6 +202,12 @@ func (suite *TestSuite) TestSkipInMemoryCache() {
 		UserId: "1",
 	}
 
+	redisKey := redisKey(t, keyInput)
+
+	// cleanup redis
+	err = suite.redisClient.Del(context.Background(), redisKey).Err()
+	require.NoError(t, err)
+
 	// ACT
 	userDetails, err := manager.GetUserDetails(
 		context.Background(),
@@ -213,13 +226,15 @@ func (suite *TestSuite) TestSkipInMemoryCache() {
 	require.Equal(t, "test@user.com", user.GetEmail())
 
 	// get from redis
-	redisKey := redisKey(t, keyInput)
 	data, err := suite.redisClient.Get(context.Background(), redisKey).Result()
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
+	bytes, err := base64.StdEncoding.DecodeString(data)
+	require.NoError(t, err)
+
 	userDetailsResponse := &testapp.UserDetailsResponse{}
-	err = proto.Unmarshal([]byte(data), userDetailsResponse)
+	err = proto.Unmarshal(bytes, userDetailsResponse)
 	require.NoError(t, err)
 
 	require.NotNil(t, userDetailsResponse.User)
@@ -321,13 +336,96 @@ func (suite *TestSuite) TestCanReplaceDataFromCache() {
 	require.NoError(t, err)
 	require.NotEmpty(t, data)
 
+	bytes, err := base64.StdEncoding.DecodeString(data)
+	require.NoError(t, err)
+
 	var userDetailsResponse testapp.UserDetailsResponse
 
-	err = proto.Unmarshal([]byte(data), &userDetailsResponse)
+	err = proto.Unmarshal(bytes, &userDetailsResponse)
 	require.NoError(t, err)
 
 	require.NotNil(t, userDetailsResponse.User)
 	require.Equal(t, "Replaced User", userDetailsResponse.User.GetName())
 	require.Equal(t, "1", userDetailsResponse.User.GetUserId())
 	require.Equal(t, "replaced@user.com", userDetailsResponse.User.GetEmail())
+}
+
+func (suite *TestSuite) TestShouldStoreWithoutGzipAndReadWithGzipFromCache() {
+	// ARRANGE
+	t := suite.T()
+	redisEndpoint, err := suite.redisContainer.Endpoint(context.Background(), "")
+	require.NoError(t, err)
+
+	// setting user into cache without gzip option
+	manager := userCacheManager(
+		t,
+		redisEndpoint,
+	)
+	keyInput := &testapp.UserDetailsRequest{
+		UserId: "2",
+	}
+
+	userDetails, err := manager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, userDetails)
+	require.NotNil(t, userDetails.User)
+
+	// reading user from cache with gzip enabled
+	newmanager := userCacheManager(
+		t,
+		redisEndpoint,
+		gocachemanager.WithGzip(),
+	)
+
+	newUserDetails, err := newmanager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+	require.NoError(t, err)
+	require.Equal(t, userDetails.GetUser().GetName(), newUserDetails.GetUser().GetName())
+	require.Equal(t, userDetails.GetUser().GetUserId(), newUserDetails.GetUser().GetUserId())
+	require.Equal(t, userDetails.GetUser().GetEmail(), newUserDetails.GetUser().GetEmail())
+}
+
+func (suite *TestSuite) TestShouldStoreWithGzipAndReadWithoutGzipFromCache() {
+	// ARRANGE
+	t := suite.T()
+	redisEndpoint, err := suite.redisContainer.Endpoint(context.Background(), "")
+	require.NoError(t, err)
+
+	// setting user into cache with gzip enabled
+	manager := userCacheManager(
+		t,
+		redisEndpoint,
+		gocachemanager.WithGzip(),
+	)
+	keyInput := &testapp.UserDetailsRequest{
+		UserId: "2",
+	}
+
+	userDetails, err := manager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, userDetails)
+	require.NotNil(t, userDetails.User)
+
+	// reading user from cache with gzip disabled
+	newmanager := userCacheManager(
+		t,
+		redisEndpoint,
+	)
+
+	newUserDetails, err := newmanager.GetUserDetails(
+		context.Background(),
+		keyInput,
+	)
+	require.NoError(t, err)
+	require.Equal(t, userDetails.GetUser().GetName(), newUserDetails.GetUser().GetName())
+	require.Equal(t, userDetails.GetUser().GetUserId(), newUserDetails.GetUser().GetUserId())
+	require.Equal(t, userDetails.GetUser().GetEmail(), newUserDetails.GetUser().GetEmail())
 }
