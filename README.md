@@ -352,3 +352,23 @@ manager, err := usersvc.NewUserCacheManager(
     gocachemanager.WithExpiration(5 * time.Minute),
 )
 ```
+
+
+### WithGzip
+
+This option allows you to configure the cache manager to use data compression to reduce the payload before save it into cache
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "
+            },
+        }, nil
+    },
+    gocachemanager.WithGzip(),
+)
+```

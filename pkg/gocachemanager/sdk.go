@@ -1,10 +1,14 @@
 package gocachemanager
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -22,7 +26,8 @@ var ErrCacheMiss = errors.New("cache miss")
 type GoCacheWrapper struct {
 	prefix       string
 	expiration   time.Duration
-	cacheManager cache.CacheInterface[[]byte]
+	cacheManager cache.CacheInterface[string]
+	gzip         bool
 }
 
 func NewGoCacheWrapper(
@@ -30,7 +35,7 @@ func NewGoCacheWrapper(
 	expiration time.Duration,
 	settings *CacheSettings,
 ) (*GoCacheWrapper, error) {
-	caches := []cache.SetterCacheInterface[[]byte]{}
+	caches := []cache.SetterCacheInterface[string]{}
 
 	if !settings.skipInMemoryCache {
 		maxSize := settings.inMemoryCacheSize
@@ -48,7 +53,7 @@ func NewGoCacheWrapper(
 		}
 
 		ristrettoStore := ristretto_store.NewRistretto(ristrettoCache)
-		caches = append(caches, cache.New[[]byte](ristrettoStore))
+		caches = append(caches, cache.New[string](ristrettoStore))
 	}
 
 	if settings.redisConnection != "" {
@@ -60,7 +65,7 @@ func NewGoCacheWrapper(
 
 		redisStore := redis_store.NewRedis(redisClient, store.WithExpiration(expiration))
 
-		caches = append(caches, cache.New[[]byte](redisStore))
+		caches = append(caches, cache.New[string](redisStore))
 	}
 
 	if len(caches) == 0 {
@@ -68,7 +73,7 @@ func NewGoCacheWrapper(
 	}
 
 	// Initialize chained cache
-	var cacheManager cache.CacheInterface[[]byte]
+	var cacheManager cache.CacheInterface[string]
 
 	if settings.prometheusPrefix == "" {
 		cacheManager = cache.NewChain(caches...)
@@ -91,6 +96,7 @@ func NewGoCacheWrapper(
 		prefix:       prefix,
 		cacheManager: cacheManager,
 		expiration:   expiration,
+		gzip:         settings.gzip,
 	}, nil
 }
 
@@ -102,7 +108,8 @@ func (gcw *GoCacheWrapper) getKey(key []byte) string {
 
 func (gcw *GoCacheWrapper) Get(ctx context.Context, key []byte) ([]byte, error) {
 	strKey := gcw.getKey(key)
-	data, err := gcw.cacheManager.Get(ctx, strKey)
+
+	value, err := gcw.cacheManager.Get(ctx, strKey)
 	if err != nil {
 		if _, isError := lo.ErrorsAs[*store.NotFound](err); isError {
 			return nil, ErrCacheMiss
@@ -111,17 +118,79 @@ func (gcw *GoCacheWrapper) Get(ctx context.Context, key []byte) ([]byte, error) 
 		return nil, fmt.Errorf("getting data: %w", err)
 	}
 
-	return data, nil
+	data, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return nil, fmt.Errorf("decoding cache value: %w", err)
+	}
+
+	var resultBuffer bytes.Buffer
+
+	if err = gunzipWrite(&resultBuffer, data); err != nil {
+		log.Printf("decompressing data: %s\n", err.Error())
+		return data, nil
+	}
+
+	return resultBuffer.Bytes(), nil
 }
 
 func (gcw *GoCacheWrapper) Set(ctx context.Context, key []byte, value []byte) error {
 	strKey := gcw.getKey(key)
 
-	return gcw.cacheManager.Set(ctx, strKey, value, store.WithExpiration(gcw.expiration))
+	var buffer bytes.Buffer
+
+	if gcw.gzip {
+		w := gzip.NewWriter(&buffer)
+		defer w.Close()
+
+		if err := gzipWrite(&buffer, value); err != nil {
+			return fmt.Errorf("writting value to buffer: %w", err)
+		}
+	} else {
+		if _, err := buffer.Write(value); err != nil {
+			return fmt.Errorf("writting value to buffer: %w", err)
+		}
+	}
+
+	return gcw.cacheManager.Set(
+		ctx,
+		strKey,
+		base64.StdEncoding.EncodeToString(buffer.Bytes()),
+		store.WithExpiration(gcw.expiration),
+	)
 }
 
 func (gcw *GoCacheWrapper) Delete(ctx context.Context, key []byte) error {
 	strKey := gcw.getKey(key)
 
 	return gcw.cacheManager.Delete(ctx, strKey)
+}
+
+func gunzipWrite(w io.Writer, data []byte) error {
+	gr, err := gzip.NewReader(bytes.NewBuffer(data))
+	if err != nil {
+		return fmt.Errorf("creating gzip reader: %w", err)
+	}
+
+	defer gr.Close()
+
+	if _, err = io.Copy(w, gr); err != nil {
+		return fmt.Errorf("coping gzip bytes: %w", err)
+	}
+
+	return nil
+}
+
+func gzipWrite(w io.Writer, data []byte) error {
+	gw, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+	if err != nil {
+		return fmt.Errorf("initializing gzip: %w", err)
+	}
+
+	defer gw.Close()
+
+	if _, err = gw.Write(data); err != nil {
+		return fmt.Errorf("writing gzip data: %w", err)
+	}
+
+	return nil
 }
