@@ -59,6 +59,10 @@ func NewGoCacheWrapper(
 	if settings.redisConnection != "" {
 		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
 
+		if err := pingRedis(redisClient); err != nil {
+			return nil, fmt.Errorf("pinging Redis: %w", err)
+		}
+
 		if settings.expiration != 0 {
 			expiration = settings.expiration
 		}
@@ -66,6 +70,23 @@ func NewGoCacheWrapper(
 		redisStore := redis_store.NewRedis(redisClient, store.WithExpiration(expiration))
 
 		caches = append(caches, cache.New[string](redisStore))
+	}
+
+	if settings.redisClusterConnection != "" {
+		opts, err := redis.ParseClusterURL(settings.redisClusterConnection)
+		if err != nil {
+			return nil, fmt.Errorf("parsing Redis cluster URL: %w", err)
+		}
+
+		redisClusterClient := redis.NewClusterClient(opts)
+
+		if err := pingRedis(redisClusterClient); err != nil {
+			return nil, fmt.Errorf("pinging Redis cluster: %w", err)
+		}
+
+		redisClusterStore := redis_store.NewRedis(redisClusterClient, store.WithExpiration(expiration))
+
+		caches = append(caches, cache.New[string](redisClusterStore))
 	}
 
 	if len(caches) == 0 {
@@ -193,4 +214,30 @@ func gzipWrite(w io.Writer, data []byte) error {
 	}
 
 	return nil
+}
+
+func pingRedis(client redis.UniversalClient) error {
+	const maxRetries = 3
+	const retryDelay = 5 * time.Second
+	var errs []error
+
+	for i := 0; i < maxRetries; i++ {
+		err := pingRedisWithTimeout(client, 5*time.Second)
+		if err == nil {
+			return nil
+		}
+
+		errs = append(errs, err)
+
+		time.Sleep(retryDelay)
+	}
+
+	return fmt.Errorf("pinging Redis after %d retries: %w", maxRetries, errors.Join(errs...))
+}
+
+func pingRedisWithTimeout(client redis.UniversalClient, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return client.Ping(ctx).Err()
 }

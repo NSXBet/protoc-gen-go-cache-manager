@@ -263,7 +263,7 @@ which is the Redis endpoint. Here is an example of how you can use this option:
 
 ```go
 manager, err := usersvc.NewUserCacheManager(
-    func(ctx context.Context, input *usersvc.UserDetailsRequest) (*usersvc.UserDetailsResponse, error) {
+    func(ctx context.Context, input *usersvc.UserDetailsRequest, deps map[string]any) (*usersvc.UserDetailsResponse, error) {
         return &usersvc.UserDetailsResponse{
             User: &usersvc.User{
                 UserId: input.UserId,
@@ -273,6 +273,26 @@ manager, err := usersvc.NewUserCacheManager(
         }, nil
     },
     gocachemanager.WithRedisConnection("localhost:6379"),
+)
+```
+
+### WithRedisClusterConnection
+
+This option allows you to configure the cache manager to use a Redis Cluster cache. This option takes a single string parameter
+which is the Redis Cluster endpoint. Here is an example of how you can use this option:
+
+```go
+manager, err := usersvc.NewUserCacheManager(
+    func(ctx context.Context, input *usersvc.UserDetailsRequest, deps map[string]any) (*usersvc.UserDetailsResponse, error) {
+        return &usersvc.UserDetailsResponse{
+            User: &usersvc.User{
+                UserId: input.UserId,
+                Name:   "Test User",
+                Email:  "",
+            },
+        }, nil
+    },
+    gocachemanager.WithRedisClusterConnection("redis://localhost:6379"),
 )
 ```
 
