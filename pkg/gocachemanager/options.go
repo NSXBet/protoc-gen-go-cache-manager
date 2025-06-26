@@ -8,6 +8,10 @@ type CacheSettings struct {
 	// Defaults to empty string, meaning no Redis connection. So no cache will be used in Redis.
 	redisConnection string
 
+	// redisClusterConnection is the connection string for the Redis cluster.
+	// Defaults to empty string, meaning no Redis cluster connection. So no cache will be used in Redis cluster.
+	redisClusterConnection string
+
 	// skipInMemoryCache is a flag to skip the in-memory cache and utilize redis only.
 	// Defaults to false, meaning in-memory cache is used.
 	skipInMemoryCache bool
@@ -46,6 +50,13 @@ type CacheOption func(*CacheSettings)
 func WithRedisConnection(redisConnection string) CacheOption {
 	return func(settings *CacheSettings) {
 		settings.redisConnection = redisConnection
+	}
+}
+
+// WithRedisClusterConnection is a cache option for setting the Redis cluster connection string.
+func WithRedisClusterConnection(redisClusterConnection string) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.redisClusterConnection = redisClusterConnection
 	}
 }
 
