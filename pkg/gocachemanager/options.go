@@ -8,6 +8,11 @@ type CacheSettings struct {
 	// Defaults to empty string, meaning no Redis connection. So no cache will be used in Redis.
 	redisConnection string
 
+	// redisConnectionStr is the full connection string for the Redis server.
+	// Supports formats like: redis://user:pass@host:port/db or rediss://user:pass@host:port/db
+	// Defaults to empty string, meaning no Redis connection. So no cache will be used in Redis.
+	redisConnectionStr string
+
 	// skipInMemoryCache is a flag to skip the in-memory cache and utilize redis only.
 	// Defaults to false, meaning in-memory cache is used.
 	skipInMemoryCache bool
@@ -34,8 +39,9 @@ type CacheSettings struct {
 // DefaultCacheSettings returns the default cache settings.
 func DefaultCacheSettings() *CacheSettings {
 	return &CacheSettings{
-		redisConnection:   "", // No Redis connection by default
-		skipInMemoryCache: false,
+		redisConnection:    "", // No Redis connection by default
+		redisConnectionStr: "", // No Redis connection by default
+		skipInMemoryCache:  false,
 	}
 }
 
@@ -46,6 +52,14 @@ type CacheOption func(*CacheSettings)
 func WithRedisConnection(redisConnection string) CacheOption {
 	return func(settings *CacheSettings) {
 		settings.redisConnection = redisConnection
+	}
+}
+
+// WithRedisConnectionStr is a cache option for setting the Redis connection string.
+// Supports full connection URLs like: redis://user:pass@host:port/db or rediss://user:pass@host:port/db
+func WithRedisConnectionStr(connectionStr string) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.redisConnectionStr = connectionStr
 	}
 }
 
@@ -88,3 +102,4 @@ func WithGzip() CacheOption {
 		settings.gzip = true
 	}
 }
+
