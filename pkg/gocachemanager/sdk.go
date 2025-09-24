@@ -56,8 +56,20 @@ func NewGoCacheWrapper(
 		caches = append(caches, cache.New[string](ristrettoStore))
 	}
 
-	if settings.redisConnection != "" {
-		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
+	// Handle Redis connection (either simple connection string or full URL)
+	if settings.redisConnection != "" || settings.redisConnectionStr != "" {
+		var redisClient *redis.Client
+
+		if settings.redisConnectionStr != "" {
+			opts, err := redis.ParseURL(settings.redisConnectionStr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing Redis connection string: %w", err)
+			}
+			redisClient = redis.NewClient(opts)
+		} else {
+			// Use legacy simple connection format for backward compatibility
+			redisClient = redis.NewClient(&redis.Options{Addr: settings.redisConnection})
+		}
 
 		if settings.expiration != 0 {
 			expiration = settings.expiration
