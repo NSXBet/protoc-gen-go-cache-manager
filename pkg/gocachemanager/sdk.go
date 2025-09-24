@@ -21,6 +21,11 @@ import (
 	"github.com/samber/lo"
 )
 
+const (
+	pingRedisConnectionInterval   = 5 * time.Second
+	pingRedisConnectionMaxRetries = 3
+)
+
 var ErrCacheMiss = errors.New("cache miss")
 
 type GoCacheWrapper struct {
@@ -56,14 +61,30 @@ func NewGoCacheWrapper(
 		caches = append(caches, cache.New[string](ristrettoStore))
 	}
 
-	if settings.redisConnection != "" {
-		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
+	// Handle Redis connection (either simple connection string or full URL)
+	if settings.redisConnection != "" || settings.redisConnectionStr != "" {
+		var redisClient *redis.Client
+
+		if settings.redisConnectionStr != "" {
+			opts, err := redis.ParseURL(settings.redisConnectionStr)
+			if err != nil {
+				return nil, fmt.Errorf("parsing Redis connection string: %w", err)
+			}
+			redisClient = redis.NewClient(opts)
+		} else {
+			// Use legacy simple connection format for backward compatibility
+			redisClient = redis.NewClient(&redis.Options{Addr: settings.redisConnection})
+		}
 
 		if settings.expiration != 0 {
 			expiration = settings.expiration
 		}
 
 		redisStore := redis_store.NewRedis(redisClient, store.WithExpiration(expiration))
+
+		if err := pingRedisConnectionLoop(redisClient); err != nil {
+			return nil, err
+		}
 
 		caches = append(caches, cache.New[string](redisStore))
 	}
@@ -190,6 +211,32 @@ func gzipWrite(w io.Writer, data []byte) error {
 
 	if _, err = gw.Write(data); err != nil {
 		return fmt.Errorf("writing gzip data: %w", err)
+	}
+
+	return nil
+}
+
+func pingRedisConnectionLoop(redisClient *redis.Client) error {
+	var errList []error
+
+	for i := 0; i < pingRedisConnectionMaxRetries; i++ {
+		err := pingRedisConnection(redisClient)
+		if err != nil {
+			errList = append(errList, err)
+			time.Sleep(pingRedisConnectionInterval)
+
+			continue
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("pinging redis: %w", errors.Join(errList...))
+}
+
+func pingRedisConnection(redisClient *redis.Client) error {
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		return fmt.Errorf("pinging redis: %w", err)
 	}
 
 	return nil
