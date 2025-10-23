@@ -122,7 +122,7 @@ func (gcw *GoCacheWrapper) Get(ctx context.Context, key []byte) ([]byte, error) 
 		return nil, fmt.Errorf("decoding cache value: %w", err)
 	}
 
-	if gcw.gzip {
+	if isGzipCompressed(data) {
 		var resultBuffer bytes.Buffer
 
 		if err = gunzipWrite(&resultBuffer, data); err != nil {
@@ -162,6 +162,11 @@ func (gcw *GoCacheWrapper) Delete(ctx context.Context, key []byte) error {
 	strKey := gcw.getKey(key)
 
 	return gcw.cacheManager.Delete(ctx, strKey)
+}
+
+// isGzipCompressed checks if data is gzip-compressed by verifying the magic number (0x1f 0x8b)
+func isGzipCompressed(data []byte) bool {
+	return len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b
 }
 
 func gunzipWrite(w io.Writer, data []byte) error {
