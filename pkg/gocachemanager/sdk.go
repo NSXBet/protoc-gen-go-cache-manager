@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -123,14 +122,17 @@ func (gcw *GoCacheWrapper) Get(ctx context.Context, key []byte) ([]byte, error) 
 		return nil, fmt.Errorf("decoding cache value: %w", err)
 	}
 
-	var resultBuffer bytes.Buffer
+	if isGzipCompressed(data) {
+		var resultBuffer bytes.Buffer
 
-	if err = gunzipWrite(&resultBuffer, data); err != nil {
-		log.Printf("decompressing data: %s\n", err.Error())
-		return data, nil
+		if err = gunzipWrite(&resultBuffer, data); err != nil {
+			return nil, fmt.Errorf("decompressing data: %w", err)
+		}
+
+		return resultBuffer.Bytes(), nil
 	}
 
-	return resultBuffer.Bytes(), nil
+	return data, nil
 }
 
 func (gcw *GoCacheWrapper) Set(ctx context.Context, key []byte, value []byte) error {
@@ -139,9 +141,6 @@ func (gcw *GoCacheWrapper) Set(ctx context.Context, key []byte, value []byte) er
 	var buffer bytes.Buffer
 
 	if gcw.gzip {
-		w := gzip.NewWriter(&buffer)
-		defer w.Close()
-
 		if err := gzipWrite(&buffer, value); err != nil {
 			return fmt.Errorf("writting value to buffer: %w", err)
 		}
@@ -163,6 +162,11 @@ func (gcw *GoCacheWrapper) Delete(ctx context.Context, key []byte) error {
 	strKey := gcw.getKey(key)
 
 	return gcw.cacheManager.Delete(ctx, strKey)
+}
+
+// isGzipCompressed checks if data is gzip-compressed by verifying the magic number (0x1f 0x8b)
+func isGzipCompressed(data []byte) bool {
+	return len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b
 }
 
 func gunzipWrite(w io.Writer, data []byte) error {
