@@ -29,6 +29,12 @@ type CacheSettings struct {
 	// gzip enable value compression
 	// Defaults is false
 	gzip bool
+
+	// Redis Password
+	redisPassword string
+
+	// Redis TLS
+	redisTLS bool
 }
 
 // DefaultCacheSettings returns the default cache settings.
@@ -86,5 +92,19 @@ func WithExpiration(expiration time.Duration) CacheOption {
 func WithGzip() CacheOption {
 	return func(settings *CacheSettings) {
 		settings.gzip = true
+	}
+}
+
+// WithRedisPassword is a cache option for setting the Redis password.
+func WithRedisPassword(redisPassword string) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.redisPassword = redisPassword
+	}
+}
+
+// WithRedisTLS is a cache option for setting the Redis TLS.
+func WithRedisTLS(redisTLS bool) CacheOption {
+	return func(settings *CacheSettings) {
+		settings.redisTLS = redisTLS
 	}
 }
