@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -56,7 +57,18 @@ func NewGoCacheWrapper(
 	}
 
 	if settings.redisConnection != "" {
-		redisClient := redis.NewClient(&redis.Options{Addr: settings.redisConnection})
+		redisOptions := &redis.Options{Addr: settings.redisConnection}
+		if settings.redisPassword != "" {
+			redisOptions.Password = settings.redisPassword
+		}
+
+		if settings.redisTLS {
+			redisOptions.TLSConfig = &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			}
+		}
+
+		redisClient := redis.NewClient(redisOptions)
 
 		if settings.expiration != 0 {
 			expiration = settings.expiration
