@@ -26,10 +26,6 @@ type CacheSettings struct {
 	// Defaults to 5 seconds.
 	expiration time.Duration
 
-	// gzip enable value compression
-	// Defaults is false
-	gzip bool
-
 	// Redis Password
 	redisPassword string
 
@@ -85,13 +81,6 @@ func WithInMemoryCacheSize(inMemoryCacheSize int64) CacheOption {
 func WithExpiration(expiration time.Duration) CacheOption {
 	return func(settings *CacheSettings) {
 		settings.expiration = expiration
-	}
-}
-
-// WithGzip is a cache option for enable byte compression.
-func WithGzip() CacheOption {
-	return func(settings *CacheSettings) {
-		settings.gzip = true
 	}
 }
 
