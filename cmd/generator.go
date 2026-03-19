@@ -20,8 +20,12 @@ func (g *Generator) Generate() error {
 	protoOpt := protogen.Options{}
 
 	protoOpt.Run(func(gen *protogen.Plugin) error {
-		err = g.GenerateFiles(gen)
+		useV2, verr := g.parseVersion(gen.Request.GetParameter())
+		if verr != nil {
+			return verr
+		}
 
+		err = g.GenerateFiles(gen, useV2)
 		return err
 	})
 
@@ -32,14 +36,39 @@ func (g *Generator) Generate() error {
 	return nil
 }
 
-func (g *Generator) GenerateFiles(gen *protogen.Plugin) error {
+// parseVersion parses the version parameter and returns true if v2 is requested.
+// Returns an error if an unsupported version is specified.
+// Supported versions: v1 (default), v2.
+func (g *Generator) parseVersion(param string) (bool, error) {
+	for _, p := range strings.Split(param, ",") {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+
+		if strings.HasPrefix(p, "version=") {
+			version := strings.TrimPrefix(p, "version=")
+			switch version {
+			case "v1":
+				return false, nil
+			case "v2":
+				return true, nil
+			default:
+				return false, fmt.Errorf("unsupported version %q: supported versions are v1 and v2", version)
+			}
+		}
+	}
+	return false, nil
+}
+
+func (g *Generator) GenerateFiles(gen *protogen.Plugin, useV2 bool) error {
 	for _, f := range gen.Files {
 		if f.Generate {
 			if !g.hasCacheService(f) {
 				continue
 			}
 
-			if ferr := g.generateFile(gen, f); ferr != nil {
+			if ferr := g.generateFile(gen, f, useV2); ferr != nil {
 				return fmt.Errorf("generating file %s: %w", f.Desc.Path(), ferr)
 			}
 		}
@@ -58,7 +87,7 @@ func (g *Generator) hasCacheService(file *protogen.File) bool {
 	return false
 }
 
-func (g *Generator) generateFile(gen *protogen.Plugin, file *protogen.File) error {
+func (g *Generator) generateFile(gen *protogen.Plugin, file *protogen.File, useV2 bool) error {
 	filename := file.GeneratedFilenamePrefix + "_cache_manager.pb.go"
 
 	gf := gen.NewGeneratedFile(filename, file.GoImportPath)
@@ -71,7 +100,11 @@ func (g *Generator) generateFile(gen *protogen.Plugin, file *protogen.File) erro
 	gf.P("	\"context\"")
 	gf.P("	\"fmt\"")
 	gf.P()
-	gf.P("  \"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager\"")
+	if useV2 {
+		gf.P("	v2 \"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager/v2\"")
+	} else {
+		gf.P("	\"github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager\"")
+	}
 	gf.P(")")
 
 	for _, service := range file.Services {
@@ -79,7 +112,7 @@ func (g *Generator) generateFile(gen *protogen.Plugin, file *protogen.File) erro
 			continue
 		}
 
-		if serr := g.generateService(gf, service); serr != nil {
+		if serr := g.generateService(gf, service, useV2); serr != nil {
 			return serr
 		}
 	}
@@ -111,7 +144,7 @@ func (g *Generator) methodName(managerName, methodName string) string {
 	)
 }
 
-func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protogen.Service) error {
+func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protogen.Service, useV2 bool) error {
 	managerName := g.managerName(service.GoName)
 
 	comments := ""
@@ -123,13 +156,20 @@ func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protoge
 		)
 	}
 
+	cachePkg := "gocachemanager"
+	cacheType := "CacheManager"
+	if useV2 {
+		cachePkg = "v2"
+		cacheType = "CacheManagerV2"
+	}
+
 	gf.P(comments, "type ", managerName, " struct {")
 
 	for _, method := range service.Methods {
 		gf.P(
 			"	",
 			g.methodName(g.privateManagerName(method.Parent.GoName), method.GoName),
-			" *gocachemanager.CacheManager[*",
+			" *", cachePkg, ".", cacheType, "[*",
 			method.Input.GoIdent.GoName,
 			", *",
 			method.Output.GoIdent.GoName,
@@ -184,14 +224,14 @@ func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protoge
 		gf.P(refreshMethod, ",")
 	}
 
-	gf.P("  options ...gocachemanager.CacheOption,")
+	gf.P("  options ...", cachePkg, ".CacheOption,")
 	gf.P(
 		") (*",
 		service.GoName,
 		"Manager, error) {",
 	)
 	for _, method := range service.Methods {
-		mgrs, merr := g.generateConstructorManager(gf, method)
+		mgrs, merr := g.generateConstructorManager(gf, method, cachePkg, cacheType)
 		if merr != nil {
 			return merr
 		}
@@ -220,12 +260,13 @@ func (g *Generator) generateService(gf *protogen.GeneratedFile, service *protoge
 func (g *Generator) generateConstructorManager(
 	gf *protogen.GeneratedFile,
 	method *protogen.Method,
+	cachePkg, cacheType string,
 ) ([]string, error) {
 	var mgrs []string
 
 	gf.P(
 		g.methodName(g.privateManagerName(method.Parent.GoName), method.GoName),
-		", err := gocachemanager.NewCacheManager",
+		", err := ", cachePkg, ".NewCacheManager",
 		"(",
 	)
 	gf.P(

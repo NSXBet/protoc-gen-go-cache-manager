@@ -11,6 +11,17 @@ go-cache-manager is an extensible way of safely, concurrently, scalably and obse
 - 📚 **Layered**: go-cache-manager offers multiple layers of cache. By default, it provides both an in-memory cache and a Redis cache.
 - ⚙️  **Configurable**: You can pass various options to go-cache-manager to tailor it to your needs, such as Prometheus prefix, Redis endpoint, and the option to skip the in-memory cache layer. For a complete list of options, check the Cache Manager Options section below.
 
+### Choosing v1 vs v2
+
+| | v1 (default) | v2 |
+|---|--------------|-----|
+| **Redis value** | Base64-encoded string | Raw `[]byte` (binary-safe) |
+| **In-memory value** | Base64 string (via eko/gocache) | Raw `[]byte` (Ristretto) |
+| **Gzip** | Optional (`WithGzip`) | Removed (protobuf is already compact) |
+| **Use case** | Existing setups, compatibility | New projects, lower CPU and storage overhead |
+
+To generate code that uses the v2 SDK, pass `version=v2` in the plugin options (see [Configuring buf](#configuring-buf)).
+
 ## Usage
 
 First we'll install it with (if you wish a specific version change `@latest` to the version you want, like `@v0.4.0`):
@@ -69,6 +80,16 @@ plugins:
     out: ../gen/go
     opt:
       - paths=source_relative
+```
+
+To use the **v2** SDK (raw bytes in Redis/memory, no base64, no gzip), add `version=v2` to the plugin options:
+
+```yaml
+  - plugin: go-cache-manager
+    out: ../gen/go
+    opt:
+      - paths=source_relative
+      - version=v2
 ```
 
 Then you can run the following command to generate the code:
@@ -354,9 +375,9 @@ manager, err := usersvc.NewUserCacheManager(
 ```
 
 
-### WithGzip
+### WithGzip (v1 only)
 
-This option allows you to configure the cache manager to use data compression to reduce the payload before save it into cache
+This option allows you to configure the cache manager to use data compression before saving into cache. **Not available in v2** (v2 stores raw protobuf bytes; compression is omitted by design).
 
 ```go
 manager, err := usersvc.NewUserCacheManager(
@@ -365,10 +386,17 @@ manager, err := usersvc.NewUserCacheManager(
             User: &usersvc.User{
                 UserId: input.UserId,
                 Name:   "Test User",
-                Email:  "
+                Email:  "test@user.com",
             },
         }, nil
     },
     gocachemanager.WithGzip(),
 )
 ```
+
+### Migrating from v1 to v2
+
+1. Add `version=v2` to the go-cache-manager plugin options in `buf.gen.yaml` and regenerate.
+2. Change imports from `github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager` to `github.com/NSXBet/protoc-gen-go-cache-manager/pkg/gocachemanager/v2` (the generated code will do this when using `version=v2`).
+3. Remove any `WithGzip()` option; v2 does not support gzip.
+4. Cache keys in Redis change from base64 to hex; existing v1 entries are not readable by v2 (and vice versa). Plan for a cache flush or dual-read period if needed.
